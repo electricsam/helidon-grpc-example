@@ -1,0 +1,28 @@
+syntax = "proto3";
+option java_package = "electricsam.helidon.grpc.example.proto";
+
+service ProducerService {
+  rpc ProduceUnary (ProducerRequest) returns (ProducerResponse) {}
+  rpc ProduceStream (stream ProducerRequest) returns (stream ProducerResponse) {}
+}
+
+service ConsumerService {
+  rpc RegisterConsumer (stream ConsumerRegistration) returns (stream ConsumerResponse) {}
+}
+
+message ProducerRequest {
+  string message = 1;
+}
+
+message ProducerResponse {
+  string message = 1;
+}
+
+message ConsumerRegistration {
+  bool start = 1;
+  string id = 2;
+}
+
+message ConsumerResponse {
+  string message = 1;
+}
