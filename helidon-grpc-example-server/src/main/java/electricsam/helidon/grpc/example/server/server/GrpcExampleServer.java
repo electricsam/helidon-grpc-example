@@ -1,5 +1,5 @@
 package electricsam.helidon.grpc.example.server.server;
 
-public interface GrcpExampleServer {
+public interface GrpcExampleServer {
     void start();
 }

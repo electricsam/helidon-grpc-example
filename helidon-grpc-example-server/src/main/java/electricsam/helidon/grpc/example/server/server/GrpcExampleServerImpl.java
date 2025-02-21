@@ -5,12 +5,12 @@ import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import io.helidon.grpc.server.GrpcRouting;
 import io.helidon.grpc.server.GrpcServer;
 
-public class GrcpExampleServerImpl implements GrcpExampleServer {
+public class GrpcExampleServerImpl implements GrpcExampleServer {
 
     private final ProducerService producerService;
     private final ConsumerService consumerService;
 
-    public GrcpExampleServerImpl(ProducerService producerService, ConsumerService consumerService) {
+    public GrpcExampleServerImpl(ProducerService producerService, ConsumerService consumerService) {
         this.producerService = producerService;
         this.consumerService = consumerService;
     }

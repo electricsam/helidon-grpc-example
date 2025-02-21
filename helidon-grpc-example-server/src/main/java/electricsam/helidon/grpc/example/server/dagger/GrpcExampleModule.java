@@ -6,8 +6,8 @@ import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
 import electricsam.helidon.grpc.example.server.consumer.ConsumerServiceImpl;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import electricsam.helidon.grpc.example.server.producer.ProducerServiceImpl;
-import electricsam.helidon.grpc.example.server.server.GrcpExampleServer;
-import electricsam.helidon.grpc.example.server.server.GrcpExampleServerImpl;
+import electricsam.helidon.grpc.example.server.server.GrpcExampleServer;
+import electricsam.helidon.grpc.example.server.server.GrpcExampleServerImpl;
 
 import javax.inject.Singleton;
 
@@ -28,7 +28,7 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
-    static GrcpExampleServer grpcExampleServer(ConsumerService consumerService, ProducerService producerService) {
-        return new GrcpExampleServerImpl(producerService, consumerService);
+    static GrpcExampleServer grpcExampleServer(ConsumerService consumerService, ProducerService producerService) {
+        return new GrpcExampleServerImpl(producerService, consumerService);
     }
 }
