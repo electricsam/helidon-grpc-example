@@ -22,14 +22,16 @@ public class DisruptorConsumerService extends BaseConsumerService {
 
     @Override
     protected void subscribe(StreamObserver<ConsumerResponse> observer) {
-        BatchEventProcessor<ProducerRequestEvent> batchEventProcessor =
-                new BatchEventProcessorBuilder().build(producerQueue, producerQueue.newBarrier(),
-                        (producerRequest, l, b) -> onEvent(observer, producerRequest));
-        producerQueue.addGatingSequences(batchEventProcessor.getSequence());
-        executor.execute(batchEventProcessor);
+        BatchEventProcessor<ProducerRequestEvent> batchEventProcessor = new BatchEventProcessorBuilder()
+                .build(producerQueue,
+                        producerQueue.newBarrier(),
+                        (producerRequest, l, b) -> onEvent(observer, producerRequest)
+                );
         if (observers.putIfAbsent(observer, new ObserverBatchProcessor(observer, batchEventProcessor)) == null) {
             System.out.println("Registering consumer");
         }
+        producerQueue.addGatingSequences(batchEventProcessor.getSequence());
+        executor.execute(batchEventProcessor);
     }
 
     @Override
@@ -38,6 +40,7 @@ public class DisruptorConsumerService extends BaseConsumerService {
         if (observerBatchProcessor != null) {
             System.out.println("Unregistering consumer");
             observerBatchProcessor.getBatchEventProcessor().halt();
+            observerBatchProcessor.stop();
             producerQueue.removeGatingSequence(observerBatchProcessor.getBatchEventProcessor().getSequence());
         }
     }
@@ -51,41 +54,11 @@ public class DisruptorConsumerService extends BaseConsumerService {
         }
     }
 
-    private void onEvent(StreamObserver<ConsumerResponse> observer, ProducerRequestEvent producerRequest) throws Exception {
-        ConsumerResponse response = ConsumerResponse.newBuilder().setMessage(producerRequest.getRequest().getMessage()).build();
-        observer.onNext(response);
-    }
-
-    private static class ObserverBatchProcessor {
-
-        private final StreamObserver<ConsumerResponse> observer;
-        private final BatchEventProcessor<ProducerRequestEvent> batchEventProcessor;
-
-        ObserverBatchProcessor(StreamObserver<ConsumerResponse> observer, BatchEventProcessor<ProducerRequestEvent> batchEventProcessor) {
-            this.observer = observer;
-            this.batchEventProcessor = batchEventProcessor;
-        }
-
-        StreamObserver<ConsumerResponse> getObserver() {
-            return observer;
-        }
-
-        BatchEventProcessor<ProducerRequestEvent> getBatchEventProcessor() {
-            return batchEventProcessor;
+    private void onEvent(StreamObserver<ConsumerResponse> observer, ProducerRequestEvent producerRequest) {
+        if (!observers.get(observer).getQueue().offer(producerRequest.getRequest())) {
+            // TODO this should not happen, this queue type is temporary
+            throw new IllegalStateException("Producer queue is full");
         }
     }
 
-    public static class ProducerRequestEvent {
-
-        private ProducerRequest request;
-
-        public ProducerRequest getRequest() {
-            return request;
-        }
-
-        public void setRequest(ProducerRequest request) {
-            this.request = request;
-        }
-
-    }
 }
