@@ -3,7 +3,7 @@ package electricsam.helidon.grpc.example.server.dagger;
 import dagger.Module;
 import dagger.Provides;
 import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
-import electricsam.helidon.grpc.example.server.consumer.ConsumerServiceImpl;
+import electricsam.helidon.grpc.example.server.consumer.DisruptorConsumerService;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import electricsam.helidon.grpc.example.server.producer.ProducerServiceImpl;
 import electricsam.helidon.grpc.example.server.server.GrpcExampleServer;
@@ -17,7 +17,8 @@ public interface GrpcExampleModule {
     @Provides
     @Singleton
     static ConsumerService consumerService () {
-        return new ConsumerServiceImpl();
+//        return new LinkedBlockingQueueConsumerService();
+        return new DisruptorConsumerService();
     }
 
     @Provides

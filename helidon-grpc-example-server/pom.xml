@@ -25,6 +25,10 @@
       <groupId>com.google.dagger</groupId>
       <artifactId>dagger</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.lmax</groupId>
+      <artifactId>disruptor</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
