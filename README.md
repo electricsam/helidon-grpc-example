@@ -6,10 +6,10 @@ a proof of concept and not all aspects of a production-ready application have be
 
 ### At this point in time this project achieves the following prototype goals
 
- - Defines a protobuf schema and generates the required Java code
+ - Defines a protobuf schema and generates the required Java classes
  - Contains a Helidon gRPC service that accepts one input stream of messages
- - Contains a Helidon gRPC service that accepts multiple stream consumers
- - The gRPC service efficiently broadcasts messages from the producer to the subscribers using either a ring buffer or a deque
+ - The Helidon gRPC service also accepts multiple stream consumers
+ - The Helidon gRPC service efficiently broadcasts messages from the producer to the subscribers using either a ring buffer or a deque
  - Uses Dagger for dependency injection
  - Uses Java 21 Virtual Threads for all threads created during message processing
  - Contains a command line interface that acts as a producer, sending one message or a continuous stream of messages to the service
@@ -20,7 +20,7 @@ a proof of concept and not all aspects of a production-ready application have be
  - Need to improve error handling
  - Need to understand memory management in the CLI.  There may be a memory leak in the producer.
  - Need to add unit tests
- - Need to set performance tests to evaluate the effect changes to the project have
+ - Need to set up performance tests to evaluate the effect changes to the project have on throughput and memory
 
 ## Building the Project
 
@@ -32,7 +32,7 @@ If you are on a Mac, here are some tips for installing some resources:
  - - Install SDKMan with 'curl -s "https://get.sdkman.io" | bash'
  - - Install Java 21 through SDK Man with 'sdk install java 21.0.6-graal' (or whatever flavor of Java 21 you want)
  - - Install Maven through SDK Man with 'sdk install maven 3.9.0'
- - You might also need to install Rosetta2 to generate the protobuf Java classes:
+ - You might also need to install Rosetta 2 to generate the protobuf Java classes:
  - - softwareupdate --install-rosetta
 
 To build the project, from the root of the project run:
@@ -43,7 +43,7 @@ This will build all three modules: proto, service, cli.
 ## Running an Example
 
 To start the service, from the root of the project, run:
- - java -jar java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT.jar
+ - java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT.jar
 
 
 To start a streaming producer, from the root of the project, run:
