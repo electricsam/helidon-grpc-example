@@ -68,7 +68,10 @@ public class DisruptorConsumerService extends BaseConsumerService {
     }
 
     private void onEvent(StreamObserver<ConsumerResponse> consumerResponseStream, ProducerRequestEvent producerRequest) {
-        consumerResponseStreams.get(consumerResponseStream).process(producerRequest.getRequest());
+        ObserverBatchProcessor observerBatchProcessor = consumerResponseStreams.get(consumerResponseStream);
+        if(observerBatchProcessor != null) {
+            observerBatchProcessor.process(producerRequest.getRequest());
+        }
     }
 
 }

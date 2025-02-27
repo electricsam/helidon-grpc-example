@@ -20,7 +20,6 @@ class ObserverBatchProcessor implements Runnable {
     ObserverBatchProcessor(StreamObserver<ConsumerResponse> consumerResponseStream, BatchEventProcessor<ProducerRequestEvent> batchEventProcessor) {
         this.consumerResponseStream = consumerResponseStream;
         this.batchEventProcessor = batchEventProcessor;
-        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(this::stop));
         Thread.ofVirtual().start(this);
     }
 

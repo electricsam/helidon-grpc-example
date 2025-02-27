@@ -22,9 +22,15 @@ public class ProducerServiceImpl implements ProducerService, ConsumerServiceVisi
         consumerService.addVisitor(this);
     }
 
+
     @Override
     public String name() {
         return "ProducerService";
+    }
+
+    @Override
+    public void onServerShutdown() {
+        onProducerServiceStop();
     }
 
     @Override
@@ -68,6 +74,9 @@ public class ProducerServiceImpl implements ProducerService, ConsumerServiceVisi
                 public void onCompleted() {
                     System.out.println("Completed producer response stream");
                     producerResponseStream.onCompleted();
+                    producerResponseStreamRef.set(null);
+                    // TODO do we want to shutdown consumers?
+//                    consumerService.onServerShutdown();
                 }
             };
         } else {

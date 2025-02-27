@@ -16,17 +16,8 @@ abstract class BaseConsumerService implements ConsumerService {
     private final AtomicBoolean acceptingConsumers = new AtomicBoolean(true);
     protected final Set<ConsumerServiceVisitor> visitors = Collections.synchronizedSet(new HashSet<>());
 
-    protected BaseConsumerService() {
-        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(this::onShutdownInternal));
-    }
-
     protected void stopAcceptingConsumers() {
         acceptingConsumers.set(false);
-    }
-
-    private void onShutdownInternal() {
-        stopAcceptingConsumers();
-        onShutdown();
     }
 
     @Override
@@ -42,6 +33,12 @@ abstract class BaseConsumerService implements ConsumerService {
     @Override
     public void addVisitor(ConsumerServiceVisitor visitor) {
         visitors.add(visitor);
+    }
+
+    @Override
+    public void onServerShutdown() {
+        stopAcceptingConsumers();
+        onShutdown();
     }
 
     protected abstract void subscribe(StreamObserver<ConsumerResponse> consumerResponseStream);

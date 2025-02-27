@@ -18,7 +18,6 @@ public class LinkedBlockingQueueConsumerService extends BaseConsumerService impl
 
 
     public LinkedBlockingQueueConsumerService() {
-        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(this::onShutdown));
         Thread.ofVirtual().start(this);
     }
 
