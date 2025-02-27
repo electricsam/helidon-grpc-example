@@ -16,7 +16,7 @@ a proof of concept and not all aspects of a production-ready application have be
  - Contains a command line interface that acts as a consumer, subscribing to the service and receiving the broadcast stream. Multiple consumers are supported.
 
 ### Known issues at this time:
- - Need to improve the handling of threads on producer, service, and consumer shutdown
+ - Need to improve the handling of threads on producer, service, and consumer on shutdown
  - Need to improve error handling
  - Need to understand memory management in the CLI.  There may be a memory leak in the producer.
  - Need to add unit tests
