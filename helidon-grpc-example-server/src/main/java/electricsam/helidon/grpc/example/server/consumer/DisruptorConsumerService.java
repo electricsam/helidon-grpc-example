@@ -16,18 +16,27 @@ public class DisruptorConsumerService extends BaseConsumerService {
 
     private final Disruptor<ProducerRequestEvent> disruptor = new Disruptor<>(ProducerRequestEvent::new, 128, VirtualThreadFactory.INSTANCE);
     private final RingBuffer<ProducerRequestEvent> producerQueue = disruptor.start();
-    private final ConcurrentHashMap<StreamObserver<ConsumerResponse>, ObserverBatchProcessor> observers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<StreamObserver<ConsumerResponse>, ObserverBatchProcessor> consumerResponseStreams = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
+    @Override
+    protected void onShutdown() {
+        completeAllResponseStreams();
+    }
+
+    private void completeAllResponseStreams() {
+        consumerResponseStreams.forEachKey(100, this::complete);
+    }
 
     @Override
-    protected void subscribe(StreamObserver<ConsumerResponse> observer) {
-        BatchEventProcessor<ProducerRequestEvent> batchEventProcessor = new BatchEventProcessorBuilder()
-                .build(producerQueue,
-                        producerQueue.newBarrier(),
-                        (producerRequest, l, b) -> onEvent(observer, producerRequest)
-                );
-        if (observers.putIfAbsent(observer, new ObserverBatchProcessor(observer, batchEventProcessor)) == null) {
+    protected void subscribe(StreamObserver<ConsumerResponse> consumerResponseStream) {
+        BatchEventProcessor<ProducerRequestEvent> batchEventProcessor
+                = new BatchEventProcessorBuilder().build(
+                producerQueue,
+                producerQueue.newBarrier(),
+                (producerRequest, l, b) -> onEvent(consumerResponseStream, producerRequest)
+        );
+        if (consumerResponseStreams.putIfAbsent(consumerResponseStream, new ObserverBatchProcessor(consumerResponseStream, batchEventProcessor)) == null) {
             System.out.println("Registering consumer");
         }
         producerQueue.addGatingSequences(batchEventProcessor.getSequence());
@@ -35,8 +44,8 @@ public class DisruptorConsumerService extends BaseConsumerService {
     }
 
     @Override
-    protected void unsubscribe(StreamObserver<ConsumerResponse> observer) {
-        ObserverBatchProcessor observerBatchProcessor = observers.remove(observer);
+    protected void unsubscribe(StreamObserver<ConsumerResponse> consumerResponseStream) {
+        ObserverBatchProcessor observerBatchProcessor = consumerResponseStreams.remove(consumerResponseStream);
         if (observerBatchProcessor != null) {
             System.out.println("Unregistering consumer");
             observerBatchProcessor.getBatchEventProcessor().halt();
@@ -49,16 +58,17 @@ public class DisruptorConsumerService extends BaseConsumerService {
     @Override
     public void sendToConsumers(ProducerRequest request) {
         if (!producerQueue.tryPublishEvent((event, sequence) -> event.setRequest(request))) {
-            // TODO handle this better
-            throw new IllegalStateException("Producer queue is full");
+            System.out.println("Producer queue is full");
+            stopAcceptingConsumers();
+            completeAllResponseStreams();
+            synchronized (visitors) {
+                visitors.forEach(ConsumerServiceVisitor::onProducerServiceStop);
+            }
         }
     }
 
-    private void onEvent(StreamObserver<ConsumerResponse> observer, ProducerRequestEvent producerRequest) {
-        if (!observers.get(observer).getQueue().offer(producerRequest.getRequest())) {
-            // TODO this should not happen, this queue type is temporary
-            throw new IllegalStateException("Producer queue is full");
-        }
+    private void onEvent(StreamObserver<ConsumerResponse> consumerResponseStream, ProducerRequestEvent producerRequest) {
+        consumerResponseStreams.get(consumerResponseStream).process(producerRequest.getRequest());
     }
 
 }

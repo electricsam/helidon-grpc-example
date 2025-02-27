@@ -4,17 +4,22 @@ import electricsam.helidon.grpc.example.proto.ExampleGrpc;
 import electricsam.helidon.grpc.example.proto.ExampleGrpc.ProducerRequest;
 import electricsam.helidon.grpc.example.proto.ExampleGrpc.ProducerResponse;
 import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
+import electricsam.helidon.grpc.example.server.consumer.ConsumerServiceVisitor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.helidon.grpc.server.ServiceDescriptor.Rules;
 
-public class ProducerServiceImpl implements ProducerService {
+import java.util.concurrent.atomic.AtomicReference;
+
+public class ProducerServiceImpl implements ProducerService, ConsumerServiceVisitor {
 
     private final ConsumerService consumerService;
+    private final AtomicReference<StreamObserver<ProducerResponse>> producerResponseStreamRef = new AtomicReference<>();
 
     public ProducerServiceImpl(ConsumerService consumerService) {
         this.consumerService = consumerService;
+        consumerService.addVisitor(this);
     }
 
     @Override
@@ -43,31 +48,56 @@ public class ProducerServiceImpl implements ProducerService {
         observer.onCompleted();
     }
 
-    private StreamObserver<ProducerRequest> bidi(StreamObserver<ProducerResponse> clientResponseStream) {
-        return new StreamObserver<>() {
-            public void onNext(ProducerRequest request) {
-                ProducerResponse response = generateResponse(request);
-                System.out.println("Sent " + response.getMessage());
-                consumerService.sendToConsumers(request);
-                clientResponseStream.onNext(response);
-            }
-
-            public void onError(Throwable t) {
-                if (!isStreamClosed(t)) {
-                    t.printStackTrace();
-                    onCompleted();
+    private StreamObserver<ProducerRequest> bidi(StreamObserver<ProducerResponse> producerResponseStream) {
+        if (producerResponseStreamRef.compareAndSet(null, producerResponseStream)) {
+            return new StreamObserver<>() {
+                public void onNext(ProducerRequest request) {
+                    ProducerResponse response = generateResponse(request);
+                    System.out.println("Sent " + response.getMessage());
+                    consumerService.sendToConsumers(request);
+                    producerResponseStream.onNext(response);
                 }
-            }
 
-            public void onCompleted() {
-                System.out.println("Completed producer response stream");
-                clientResponseStream.onCompleted();
-            }
-        };
+                public void onError(Throwable t) {
+                    if (!isStreamClosed(t)) {
+                        t.printStackTrace();
+                        onCompleted();
+                    }
+                }
+
+                public void onCompleted() {
+                    System.out.println("Completed producer response stream");
+                    producerResponseStream.onCompleted();
+                }
+            };
+        } else {
+            return new StreamObserver<>() {
+                public void onNext(ProducerRequest request) {
+                    producerResponseStream.onError(new RuntimeException("Producer already registered"));
+                    producerResponseStream.onCompleted();
+                }
+
+                public void onError(Throwable t) {
+                    producerResponseStream.onError(t);
+                    producerResponseStream.onCompleted();
+                }
+
+                public void onCompleted() {
+                    producerResponseStream.onCompleted();
+                }
+            };
+        }
     }
 
     private boolean isStreamClosed(Throwable t) {
         return t instanceof StatusRuntimeException && Status.CANCELLED == ((StatusRuntimeException) t).getStatus();
     }
 
+    @Override
+    public void onProducerServiceStop() {
+        StreamObserver<ProducerResponse> producerResponseStream = producerResponseStreamRef.getAndSet(null);
+        if (producerResponseStream != null) {
+            producerResponseStream.onCompleted();
+        }
+    }
 }

@@ -18,7 +18,7 @@ public class LinkedBlockingQueueConsumerService extends BaseConsumerService impl
 
 
     public LinkedBlockingQueueConsumerService() {
-        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(() -> running.set(false)));
+        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(this::onShutdown));
         Thread.ofVirtual().start(this);
     }
 
@@ -34,6 +34,11 @@ public class LinkedBlockingQueueConsumerService extends BaseConsumerService impl
         if (observers.remove(observer)) {
             System.out.println("Unregistering consumer");
         }
+    }
+
+    @Override
+    protected void onShutdown() {
+        running.set(false);
     }
 
     @Override

@@ -5,4 +5,5 @@ import io.helidon.grpc.server.GrpcService;
 
 public interface ConsumerService extends GrpcService {
     void sendToConsumers(ProducerRequest request);
+    void addVisitor(ConsumerServiceVisitor visitor);
 }

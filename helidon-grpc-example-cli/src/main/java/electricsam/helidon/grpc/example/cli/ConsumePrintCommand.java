@@ -57,7 +57,7 @@ class ConsumePrintCommand implements Runnable {
     };
     StreamObserver<ConsumerRegistration> clientStream = client.bidiStreaming("RegisterConsumer", observer);
     clientStream.onNext(registration);
-    System.out.println("Registered" + registration.getId());
+    System.out.println("Registered " + registration.getId());
     lock.lock();
     try {
       while (!complete.get()) {
