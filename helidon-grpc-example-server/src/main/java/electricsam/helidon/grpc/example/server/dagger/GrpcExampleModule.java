@@ -16,14 +16,14 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
-    static ConsumerService consumerService () {
+    static ConsumerService consumerService() {
 //        return new LinkedBlockingQueueConsumerService();
         return new DisruptorConsumerService();
     }
 
     @Provides
     @Singleton
-    static ProducerService producerService (ConsumerService consumerService) {
+    static ProducerService producerService(ConsumerService consumerService) {
         return new ProducerServiceImpl(consumerService);
     }
 

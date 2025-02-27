@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
 
 public class DisruptorConsumerService extends BaseConsumerService {
 
-    private final Disruptor<ProducerRequestEvent> disruptor = new Disruptor<>(ProducerRequestEvent::new, 128, VirtualThreadFactory.INSTANCE);
+    private final Disruptor<ProducerRequestEvent> disruptor = new Disruptor<>(ProducerRequestEvent::new, 1024, VirtualThreadFactory.INSTANCE);
     private final RingBuffer<ProducerRequestEvent> producerQueue = disruptor.start();
     private final ConcurrentHashMap<StreamObserver<ConsumerResponse>, ObserverBatchProcessor> consumerResponseStreams = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();

@@ -5,10 +5,13 @@ import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import io.helidon.grpc.server.GrpcRouting;
 import io.helidon.grpc.server.GrpcServer;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 public class GrpcExampleServerImpl implements GrpcExampleServer {
 
     private final ProducerService producerService;
     private final ConsumerService consumerService;
+    private final AtomicReference<GrpcServer> grpcServerRef = new AtomicReference<>();
 
     public GrpcExampleServerImpl(ProducerService producerService, ConsumerService consumerService) {
         this.producerService = producerService;
@@ -25,12 +28,18 @@ public class GrpcExampleServerImpl implements GrpcExampleServer {
                 .start()
                 .toCompletableFuture()
                 .thenAccept(grpcServer -> {
-                    Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(() -> {
-                        producerService.onServerShutdown();
-                        consumerService.onServerShutdown();
-                        grpcServer.shutdown();
-                    }));
+                    grpcServerRef.set(grpcServer);
                     System.out.println("gRPC server started at: http://localhost:" + grpcServer.port());
                 });
+    }
+
+    @Override
+    public void stop() {
+        producerService.onServerShutdown();
+        consumerService.onServerShutdown();
+        GrpcServer grpcServer = grpcServerRef.get();
+        if (grpcServer != null) {
+            grpcServer.shutdown();
+        }
     }
 }

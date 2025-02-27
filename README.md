@@ -41,7 +41,7 @@ If you are on a Mac, here are some tips for installing some resources:
  - You might also need to install Rosetta 2 to generate the protobuf Java classes:
  - - softwareupdate --install-rosetta
 
-To build the project, from the root of the project run:
+To build the project, from the root of the project, run:
  - mvn clean install
 
 This will build all three modules: proto, service, cli.
