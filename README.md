@@ -18,7 +18,8 @@ a proof of concept and not all aspects of a production-ready application have be
 ### Known issues at this time:
  - Need to improve the handling of threads on producer, service, and consumer on shutdown
  - Need to improve error handling
- - Need to understand memory management in the CLI.  There may be a memory leak in the producer.
+ - ~~Need to understand memory management in the CLI.  There may be a memory leak in the producer.~~
+ - - Messages were being sent in a rapid loop, overwhelming the netty buffer. Added a configurable delay with a reasonable default.
  - Need to add unit tests
  - Need to set up performance tests to evaluate the effect changes to the project have on throughput and memory
 
