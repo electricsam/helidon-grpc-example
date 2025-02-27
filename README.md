@@ -43,7 +43,7 @@ To build the project, from the root of the project run:
 
 This will build all three modules: proto, service, cli.
 
-## Running an Example
+## Running The Example
 
 To start the service, from the root of the project, run:
  - java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT.jar
