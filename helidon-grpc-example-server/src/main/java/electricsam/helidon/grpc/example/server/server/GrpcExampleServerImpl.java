@@ -25,7 +25,7 @@ public class GrpcExampleServerImpl implements GrpcExampleServer {
                 .start()
                 .toCompletableFuture()
                 .thenAccept(grpcServer -> {
-                    Runtime.getRuntime().addShutdownHook(new Thread(grpcServer::shutdown));
+                    Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(grpcServer::shutdown));
                     System.out.println("gRPC server started at: http://localhost:" + grpcServer.port());
                 });
     }
