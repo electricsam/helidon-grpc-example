@@ -27,6 +27,9 @@ a proof of concept and not all aspects of a production-ready application have be
 Maven and a Java 21 JDK are required. Follow the respective instructions for your OS to
 install these.
 
+JDK 21 (one example): https://www.oracle.com/java/technologies/downloads/ 
+Maven: https://maven.apache.org/
+
 If you are on a Mac, here are some tips for installing some resources:
  - Use SDKMan to install both the JDK and Maven. https://sdkman.io/
  - - Install SDKMan with 'curl -s "https://get.sdkman.io" | bash'
