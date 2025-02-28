@@ -59,6 +59,8 @@ To start a streaming producer, from the root of the project, run:
 To start a simple consumer, from the root of the project, run:
  - java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar consume print
 
+Multiple consumers can be started to demonstrate the service's multicast capabilities.
+
 Please note that this is an experimental project and not production-ready.  See caveat and known issues above.
 
 
