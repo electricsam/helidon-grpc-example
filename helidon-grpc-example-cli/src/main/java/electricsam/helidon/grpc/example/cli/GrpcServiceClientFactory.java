@@ -14,13 +14,12 @@ final class GrpcServiceClientFactory {
     CONSUMER
   }
 
-  static GrpcServiceClient create(ClientType clientType) {
+  static GrpcServiceClient create(ClientType clientType, String host, int port) {
     ClientServiceDescriptor desc = ClientServiceDescriptor
         .builder(clientType == ClientType.PRODUCER ? ProducerServiceGrpc.getServiceDescriptor() : ConsumerServiceGrpc.getServiceDescriptor())
         .build();
 
-    Channel channel = ManagedChannelBuilder.forAddress("localhost", 1408)
-        .usePlaintext().build();
+    Channel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
 
     return GrpcServiceClient.create(channel, desc);
   }
