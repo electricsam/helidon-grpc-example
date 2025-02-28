@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ProduceStreamExecutor {
 
-    private final Set<ProduceStreamExecutorVisitor> visitors = Collections.synchronizedSet(new HashSet<>());
+    private final Set<ProduceStreamExecutorVisitor> visitors = new HashSet<>();
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final AtomicBoolean stopping = new AtomicBoolean(false);
     private final Lock lock = new ReentrantLock();
@@ -49,13 +49,9 @@ public class ProduceStreamExecutor {
         try {
             while (running.get()) {
                 ProducerRequest request = ProducerRequest.newBuilder().setMessage(UUID.randomUUID().toString()).build();
-                synchronized (visitors) {
-                    visitors.forEach(visitor -> visitor.beforeSendRequest(request));
-                }
+                visitors.forEach(visitor -> visitor.beforeSendRequest(request));
                 clientStream.onNext(request);
-                synchronized (visitors) {
-                    visitors.forEach(visitor -> visitor.afterSendRequest(request));
-                }
+                visitors.forEach(visitor -> visitor.afterSendRequest(request));
                 if (delay > 0d) {
                     try {
                         Thread.sleep(delayMs, delayNanos);
@@ -65,6 +61,11 @@ public class ProduceStreamExecutor {
                     }
                 }
             }
+        } catch (Throwable throwable) {
+            System.out.println("Client error. Stopping. " + throwable.getMessage());
+            throwable.printStackTrace();
+        } finally {
+            clientStream.onCompleted();
             lock.lock();
             try {
                 stopping.set(false);
@@ -72,11 +73,6 @@ public class ProduceStreamExecutor {
             } finally {
                 lock.unlock();
             }
-        } catch (Throwable throwable) {
-            System.out.println("Client error. Stopping. " + throwable.getMessage());
-            throwable.printStackTrace();
-        } finally {
-            clientStream.onCompleted();
         }
     }
 
@@ -103,24 +99,18 @@ public class ProduceStreamExecutor {
 
         @Override
         public void onNext(ProducerResponse response) {
-            synchronized (visitors) {
-                visitors.forEach(visitor -> visitor.onReceiveResponse(response));
-            }
+            visitors.forEach(visitor -> visitor.onReceiveResponse(response));
         }
 
         @Override
         public void onError(Throwable throwable) {
-            synchronized (visitors) {
-                visitors.forEach(visitor -> visitor.onResponseError(throwable));
-            }
+            visitors.forEach(visitor -> visitor.onResponseError(throwable));
             stop();
         }
 
         @Override
         public void onCompleted() {
-            synchronized (visitors) {
-                visitors.forEach(ProduceStreamExecutorVisitor::onResponseCompleted);
-            }
+            visitors.forEach(ProduceStreamExecutorVisitor::onResponseCompleted);
             stop();
         }
     }

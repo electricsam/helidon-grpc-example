@@ -1,84 +1,59 @@
 package electricsam.helidon.grpc.example.cli;
 
-import electricsam.helidon.grpc.example.cli.GrpcServiceClientFactory.ClientType;
-import electricsam.helidon.grpc.example.proto.ExampleGrpc.ConsumerRegistration;
 import electricsam.helidon.grpc.example.proto.ExampleGrpc.ConsumerResponse;
-import io.grpc.stub.StreamObserver;
-import io.helidon.grpc.client.GrpcServiceClient;
-import java.util.UUID;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-
 @Command(
-    name = "print",
-    mixinStandardHelpOptions = true,
-    description = "prints messages from the gRPC server")
+        name = "print",
+        mixinStandardHelpOptions = true,
+        description = "prints messages from the gRPC server")
 class ConsumePrintCommand implements Runnable {
 
-  @CommandLine.Option(names = "--host", description = "The server host", defaultValue = "localhost")
-  private String host;
+    @CommandLine.Option(names = "--host", description = "The server host", defaultValue = "localhost")
+    private String host;
 
-  @CommandLine.Option(names = "--port", description = "The server port", defaultValue = "1408")
-  private int port;
+    @CommandLine.Option(names = "--port", description = "The server port", defaultValue = "1408")
+    private int port;
 
-  private final Lock lock = new ReentrantLock();
-  private final Condition condition = lock.newCondition();
-  private final AtomicBoolean complete = new AtomicBoolean();
+    private final Lock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+    private final AtomicBoolean complete = new AtomicBoolean();
 
-  @Override
-  public void run() {
-    GrpcServiceClient client = GrpcServiceClientFactory.create(ClientType.CONSUMER, host, port);
-    ConsumerRegistration registration = ConsumerRegistration.newBuilder().setStart(true).setId(UUID.randomUUID().toString()).build();
-    StreamObserver<ConsumerResponse> observer = new StreamObserver<>() {
-      @Override
-      public void onNext(ConsumerResponse consumerResponse) {
-        System.out.println("Received " + consumerResponse.getMessage());
-      }
+    @Override
+    public void run() {
 
-      @Override
-      public void onError(Throwable throwable) {
-        throwable.printStackTrace();
-        lock.lock();
-        try {
-          complete.set(true);
-          condition.signalAll();
-        }finally {
-          lock.unlock();
-        }
-      }
+        ConsumeStreamExecutorConfiguration configuration = ConsumeStreamExecutorConfiguration.builder()
+                .setHost(host)
+                .setPort(port)
+                .build();
+        ConsumeStreamExecutor executor = new ConsumeStreamExecutor(configuration);
+        executor.addVisitor(new ConsumeStreamExecutorVisitor() {
+            @Override
+            public void onReceiveResponse(ConsumerResponse response) {
+                System.out.println("Received " + response.getMessage());
+            }
 
-      @Override
-      public void onCompleted() {
-        lock.lock();
-        try {
-          complete.set(true);
-          condition.signalAll();
-        }finally {
-          lock.unlock();
-        }
-      }
-    };
-    StreamObserver<ConsumerRegistration> clientStream = client.bidiStreaming("RegisterConsumer", observer);
-    clientStream.onNext(registration);
-    System.out.println("Registered " + registration.getId());
-    lock.lock();
-    try {
-      while (!complete.get()) {
-        condition.await();
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Waiting for response queue was interrupted", e);
-    } finally {
-      lock.unlock();
+            @Override
+            public void onResponseError(Throwable throwable) {
+                throwable.printStackTrace();
+            }
+
+            @Override
+            public void onResponseCompleted() {
+
+            }
+        });
+
+        Runtime.getRuntime().addShutdownHook(Thread.ofVirtual().unstarted(executor::stop));
+
+        executor.run();
+
     }
-    clientStream.onCompleted();
-
-  }
 
 }
