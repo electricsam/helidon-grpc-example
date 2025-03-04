@@ -63,5 +63,31 @@ Multiple consumers can be started to demonstrate the service's multicast capabil
 
 Please note that this is an experimental project and not production-ready.  See caveat and known issues above.
 
+## Upcoming Experimental Features
+### Apache Camel-like Enterprise Integration Pattern (EIP) Route Definition
+
+The electricsam.helidon.grpc.example.server.experimental.eip package contains code
+that will eventually allow for EIP style definitions for data flow.
+
+Here is a partial example:
+
+```java
+protected void configure() {
+        from(producerEndpoint)
+                .errorHandler(producerRouteErrorHandler)
+                .process(producerReplyProcessor)
+                .to(disruptorRingBufferEndpoint);
+        
+        from(consumerRegistrationEndpoint)
+                .errorHandler(consumerRegistrationErrorHandler)
+                .process(consumerSubscriptionProcessor);
+        
+        from(disruptorRingBufferEndpoint)
+                .errorHandler(consumerStreamErrorHandler)
+                .process(consumerStreamingProcessor);
+}
+```
+
+
 
 
