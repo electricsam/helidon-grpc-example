@@ -5,7 +5,6 @@ import electricsam.helidon.grpc.example.proto.ExampleGrpc.ProducerResponse;
 import io.grpc.stub.StreamObserver;
 import io.helidon.grpc.client.GrpcServiceClient;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -27,14 +26,18 @@ public class ProduceStreamExecutor {
     private final int delayNanos;
     private final String host;
     private final int port;
+    private final ServiceName serviceName;
+    private final ServiceMethodName methodName;
 
 
     public ProduceStreamExecutor(ProduceStreamExecutorConfiguration configuration) {
         this.delay = configuration.getDelay();
         delayMs = (long) delay;
-        delayNanos = (int)((delay - (double) delayMs) * 100000d);
-        this.host = configuration.getHost();
-        this.port = configuration.getPort();
+        delayNanos = (int) ((delay - (double) delayMs) * 100000d);
+        host = configuration.getHost();
+        port = configuration.getPort();
+        serviceName = configuration.getServiceName();
+        methodName = configuration.getMethodName();
     }
 
     public void addVisitor(ProduceStreamExecutorVisitor visitor) {
@@ -43,9 +46,9 @@ public class ProduceStreamExecutor {
 
     public void run() {
         running.set(true);
-        GrpcServiceClient client = GrpcServiceClientFactory.create(GrpcServiceClientFactory.ClientType.PRODUCER, host, port);
+        GrpcServiceClient client = GrpcServiceClientFactory.create(serviceName, host, port);
         StreamObserver<ProducerResponse> observer = new ProducerResponseStream();
-        StreamObserver<ProducerRequest> clientStream = client.bidiStreaming("ProduceStream", observer);
+        StreamObserver<ProducerRequest> clientStream = client.bidiStreaming(methodName.toString(), observer);
         try {
             while (running.get()) {
                 ProducerRequest request = ProducerRequest.newBuilder().setMessage(UUID.randomUUID().toString()).build();

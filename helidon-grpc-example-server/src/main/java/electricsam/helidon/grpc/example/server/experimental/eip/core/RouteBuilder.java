@@ -12,14 +12,19 @@ public abstract class RouteBuilder {
 
     protected RouteDefinition from(Endpoint endpoint) {
         endpoints.add(endpoint);
-        RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl(endpoint);
-        endpoint.setRouteDefinition(routeDefinition);
+        RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        endpoint.addRouteDefinition(routeDefinition);
         routes.add(routeDefinition);
         return routeDefinition;
     }
 
     public void start() {
+        configure();
         endpoints.forEach(Endpoint::start);
+    }
+
+    public void stop() {
+        endpoints.reversed().forEach(Endpoint::stop);
     }
 
 }

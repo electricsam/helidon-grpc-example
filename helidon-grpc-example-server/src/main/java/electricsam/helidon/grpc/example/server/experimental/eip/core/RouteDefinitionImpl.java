@@ -2,20 +2,17 @@ package electricsam.helidon.grpc.example.server.experimental.eip.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class RouteDefinitionImpl implements RouteDefinitionInternal {
 
-    private final List<Processor> processors = new ArrayList<>();
+    private final List<Processable> processors = new ArrayList<>();
     private ErrorHandler errorHandler = new DefaultErrorHandler();
-    private final Endpoint from;
-
-    RouteDefinitionImpl(Endpoint from) {
-        this.from = from;
-    }
+    private String routeId = UUID.randomUUID().toString();
 
     @Override
     public RouteDefinition process(Processor processor) {
-        processors.add(processor);
+        processors.add(new ProcessorWrapper(processor));
         return this;
     }
 
@@ -32,7 +29,18 @@ public class RouteDefinitionImpl implements RouteDefinitionInternal {
     }
 
     @Override
-    public List<Processor> getProcessors() {
+    public RouteDefinition routeId(String routeId) {
+        this.routeId = routeId;
+        return this;
+    }
+
+    @Override
+    public String getRouteId() {
+        return routeId;
+    }
+
+    @Override
+    public List<Processable> getProcessors() {
         return processors;
     }
 

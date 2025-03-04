@@ -14,4 +14,9 @@ public class RouteContextImpl implements RouteContext {
     public void start() {
         routeBuilders.forEach(RouteBuilder::start);
     }
+
+    @Override
+    public void stop() {
+        routeBuilders.reversed().forEach(RouteBuilder::stop);
+    }
 }

@@ -5,8 +5,8 @@ import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.GrpcSt
 
 import java.util.Collections;
 
-public class ProducerEndpoint extends GrpcStreamEndpoint {
-    public ProducerEndpoint() {
-        super("ProducerService", Collections.singletonList(new ProtoConfig("ProduceStream", ExampleGrpc.getDescriptor())));
+public class ProducerEchoEndpoint extends GrpcStreamEndpoint {
+    public ProducerEchoEndpoint() {
+        super("EipProducerService", Collections.singletonList(new ProtoConfig("ProduceStreamEcho", ExampleGrpc.getDescriptor())));
     }
 }

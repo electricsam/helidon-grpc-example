@@ -4,14 +4,13 @@ import dagger.Module;
 import dagger.Provides;
 import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
 import electricsam.helidon.grpc.example.server.consumer.DisruptorConsumerService;
-//import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteBuilder;
-//import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContext;
-//import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContextImpl;
-//import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerEndpoint;
-//import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerReplyProcessor;
-//import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerRingBufferEndpoint;
-//import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerRouteErrorHandler;
-//import electricsam.helidon.grpc.example.server.experimental.eip.routes.ServiceRouteBuilder;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteBuilder;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContext;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContextImpl;
+import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerEchoEndpoint;
+import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerLoggingProcessor;
+import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerSetReplyProcessor;
+import electricsam.helidon.grpc.example.server.experimental.eip.routes.ServiceRouteBuilder;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import electricsam.helidon.grpc.example.server.producer.ProducerServiceImpl;
 import electricsam.helidon.grpc.example.server.server.GrpcExampleServer;
@@ -37,28 +36,38 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
-    static GrpcExampleServer grpcExampleServer(ConsumerService consumerService, ProducerService producerService) {
-        return new GrpcExampleServerImpl(producerService, consumerService);
+    static GrpcExampleServer grpcExampleServer(
+            ConsumerService consumerService,
+            ProducerService producerService,
+            ProducerEchoEndpoint expermientalProducerEchoEndpoint,
+            RouteContext experimentalRouteContext
+    ) {
+        return new GrpcExampleServerImpl(
+                producerService,
+                consumerService,
+                expermientalProducerEchoEndpoint,
+                experimentalRouteContext
+        );
     }
 
-    // TODO this is experimental
-//    @Provides
-//    @Singleton
-//    static ProducerEndpoint producerEndpoint() {
-//        return new ProducerEndpoint();
-//    }
-//
-//    @Provides
-//    @Singleton
-//    static ProducerReplyProcessor producerReplyProcessor() {
-//        return new ProducerReplyProcessor();
-//    }
-//
-//    @Provides
-//    @Singleton
-//    static ProducerRouteErrorHandler producerRouteErrorHandler() {
-//        return new ProducerRouteErrorHandler();
-//    }
+    // TODO below this is experimental
+    @Provides
+    @Singleton
+    static ProducerEchoEndpoint experimentalProducerEchoEndpoint() {
+        return new ProducerEchoEndpoint();
+    }
+
+    @Provides
+    @Singleton
+    static ProducerLoggingProcessor producerLoggingProcessor() {
+        return new ProducerLoggingProcessor();
+    }
+
+    @Provides
+    @Singleton
+    static ProducerSetReplyProcessor producerSetReplyProcessor() {
+        return new ProducerSetReplyProcessor();
+    }
 //
 //    @Provides
 //    @Singleton
@@ -66,24 +75,23 @@ public interface GrpcExampleModule {
 //        return new ProducerRingBufferEndpoint();
 //    }
 //
-//    @Provides
-//    @Singleton
-//    static RouteBuilder routeBuilder(
-//            ProducerEndpoint producerEndpoint,
-//            ProducerReplyProcessor producerReplyProcessor,
-//            ProducerRouteErrorHandler producerRouteErrorHandler,
-//            ProducerRingBufferEndpoint producerRingBufferEndpoint
-//    ) {
-//        return new ServiceRouteBuilder(
-//                producerEndpoint,
-//                producerReplyProcessor,
-//                producerRouteErrorHandler,
-//                producerRingBufferEndpoint);
-//    }
-//
-//    @Provides
-//    @Singleton
-//    static RouteContext routeContext(RouteBuilder routeBuilder) {
-//        return new RouteContextImpl(Collections.singletonList(routeBuilder));
-//    }
+    @Provides
+    @Singleton
+    static RouteBuilder experimentalRouteBuilder(
+            ProducerEchoEndpoint producerEchoEndpoint,
+            ProducerLoggingProcessor producerLoggingProcessor,
+            ProducerSetReplyProcessor processorsSetReplyProcessor
+    ) {
+        return new ServiceRouteBuilder(
+                producerEchoEndpoint,
+                producerLoggingProcessor,
+                processorsSetReplyProcessor
+        );
+    }
+
+    @Provides
+    @Singleton
+    static RouteContext experimentalRouteContext(RouteBuilder routeBuilder) {
+        return new RouteContextImpl(Collections.singletonList(routeBuilder));
+    }
 }

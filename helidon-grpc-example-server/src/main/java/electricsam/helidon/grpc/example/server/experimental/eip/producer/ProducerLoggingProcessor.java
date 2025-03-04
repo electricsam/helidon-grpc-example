@@ -8,7 +8,7 @@ import io.grpc.stub.StreamObserver;
 import static electricsam.helidon.grpc.example.server.experimental.eip.core.impl.GrpcStreamEndpoint.COMPLETED;
 import static electricsam.helidon.grpc.example.server.experimental.eip.core.impl.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER;
 
-public class ProducerReplyProcessor implements Processor {
+public class ProducerLoggingProcessor implements Processor {
     @Override
     public void process(Exchange exchange) {
         // TODO add split / filter to RouteDefinition to remove conditional here

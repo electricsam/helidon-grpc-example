@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface RouteDefinitionInternal extends RouteDefinition {
 
-    List<Processor> getProcessors();
-
+    String getRouteId();
+    List<Processable> getProcessors();
     ErrorHandler getErrorHandler();
 }

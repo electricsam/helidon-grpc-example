@@ -6,7 +6,11 @@ import picocli.CommandLine.Spec;
 
 @Command(
     name = "produce",
-    subcommands = { ProduceSingleCommand.class, ProduceStreamCommand.class },
+    subcommands = {
+            ProduceSingleCommand.class,
+            ProduceStreamCommand.class,
+            ProduceStreamEipCommand.class
+    },
     mixinStandardHelpOptions = true,
     description = "commands to send messages to the gRPC server")
 class ProducerCommands implements Runnable {

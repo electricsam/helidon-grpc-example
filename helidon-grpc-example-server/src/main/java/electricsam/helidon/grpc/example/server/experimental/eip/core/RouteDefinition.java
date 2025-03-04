@@ -5,4 +5,5 @@ public interface RouteDefinition {
     RouteDefinition process(Processor processor);
     RouteDefinition to(Endpoint endpoint);
     RouteDefinition errorHandler(ErrorHandler errorHandler);
+    RouteDefinition routeId(String routeId);
 }

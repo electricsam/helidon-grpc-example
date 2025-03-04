@@ -35,7 +35,7 @@ public class ConsumeStreamExecutor {
     }
 
     public void run() {
-        GrpcServiceClient client = GrpcServiceClientFactory.create(GrpcServiceClientFactory.ClientType.CONSUMER, host, port);
+        GrpcServiceClient client = GrpcServiceClientFactory.create(ServiceName.ConsumerService, host, port);
         ConsumerRegistration registration = ConsumerRegistration.newBuilder().setStart(true).setId(UUID.randomUUID().toString()).build();
         StreamObserver<ConsumerResponse> observer = new StreamObserver<>() {
             @Override

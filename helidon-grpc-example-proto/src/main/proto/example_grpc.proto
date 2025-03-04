@@ -10,6 +10,15 @@ service ConsumerService {
   rpc RegisterConsumer (stream ConsumerRegistration) returns (stream ConsumerResponse) {}
 }
 
+service EipProducerService {
+  rpc ProduceStream (stream ProducerRequest) returns (stream ProducerResponse) {}
+  rpc ProduceStreamEcho (stream ProducerRequest) returns (stream ProducerResponse) {}
+}
+
+service EipConsumerService {
+  rpc RegisterConsumer (stream ConsumerRegistration) returns (stream ConsumerResponse) {}
+}
+
 message ProducerRequest {
   string message = 1;
 }

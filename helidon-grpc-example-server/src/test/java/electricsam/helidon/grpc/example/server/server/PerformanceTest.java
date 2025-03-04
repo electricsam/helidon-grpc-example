@@ -48,6 +48,8 @@ public class PerformanceTest {
         ProduceStreamExecutor producer = new ProduceStreamExecutor(ProduceStreamExecutorConfiguration.builder()
                 .setPort(port)
                 .setDelay(0.1)
+                .setServiceName(ServiceName.ProducerService)
+                .setMethodName(ServiceMethodName.ProduceStream)
                 .build());
 
         producer.addVisitor(new ProduceStreamExecutorVisitor() {

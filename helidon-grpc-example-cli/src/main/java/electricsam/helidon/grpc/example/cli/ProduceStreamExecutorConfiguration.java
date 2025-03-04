@@ -1,5 +1,7 @@
 package electricsam.helidon.grpc.example.cli;
 
+import java.util.Objects;
+
 public class ProduceStreamExecutorConfiguration {
 
     public static Builder builder() {
@@ -9,11 +11,17 @@ public class ProduceStreamExecutorConfiguration {
     private final double delay;
     private final String host;
     private final int port;
+    private final ServiceName serviceName;
+    private final ServiceMethodName methodName;
+    private final boolean noDirectBuffers;
 
-    private ProduceStreamExecutorConfiguration(double delay, String host, int port) {
+    private ProduceStreamExecutorConfiguration(double delay, String host, int port, ServiceName serviceName, ServiceMethodName methodName, boolean noDirectBuffers) {
         this.delay = delay;
         this.host = host;
         this.port = port;
+        this.serviceName = serviceName;
+        this.methodName = methodName;
+        this.noDirectBuffers = noDirectBuffers;
     }
 
     public double getDelay() {
@@ -28,10 +36,25 @@ public class ProduceStreamExecutorConfiguration {
         return port;
     }
 
+    public ServiceName getServiceName() {
+        return serviceName;
+    }
+
+    public ServiceMethodName getMethodName() {
+        return methodName;
+    }
+
+    public boolean isNoDirectBuffers() {
+        return noDirectBuffers;
+    }
+
     public static class Builder {
-        private double delay = 0.1;
+        private double delay = 1.0;
         private String host = "localhost";
         private int port = 1408;
+        private ServiceName serviceName;
+        private ServiceMethodName methodName;
+        private boolean noDirectBuffers = false;
 
         private Builder() {
 
@@ -52,8 +75,30 @@ public class ProduceStreamExecutorConfiguration {
             return this;
         }
 
+        public Builder setServiceName(ServiceName serviceName) {
+            this.serviceName = serviceName;
+            return this;
+        }
+
+        public Builder setMethodName(ServiceMethodName methodName) {
+            this.methodName = methodName;
+            return this;
+        }
+
+        public Builder setNoDirectBuffers(boolean noDirectBuffers) {
+            this.noDirectBuffers = noDirectBuffers;
+            return this;
+        }
+
         public ProduceStreamExecutorConfiguration build() {
-            return new ProduceStreamExecutorConfiguration(delay, host, port);
+            return new ProduceStreamExecutorConfiguration(
+                    delay,
+                    host,
+                    port,
+                    Objects.requireNonNull(serviceName, "serviceName is required"),
+                    Objects.requireNonNull(methodName, "methodName is required"),
+                    noDirectBuffers
+            );
         }
     }
 }

@@ -1,8 +1,9 @@
 package electricsam.helidon.grpc.example.server.experimental.eip.core;
 
-public interface Endpoint extends Processor {
+public interface Endpoint extends Processable {
 
-    void setRouteDefinition(RouteDefinitionInternal routeDefinition);
+    void removeRouteDefinition(String routeId);
+    void addRouteDefinition(RouteDefinitionInternal routeDefinition);
     void start();
     void stop();
 

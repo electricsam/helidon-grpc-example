@@ -9,6 +9,7 @@ import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -18,32 +19,30 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     public static final String RING_BUFFER = "RING_BUFFER";
 
     private final int ringBufferSize;
-    private final boolean disableDefaultOutput;
 
-    private final Disruptor<DisruptorRingBufferEvent> disruptor;
     private final RingBuffer<DisruptorRingBufferEvent> ringBuffer;
-    //    private final ConcurrentHashMap<StreamObserver<ExampleGrpc.ConsumerResponse>, ObserverBatchProcessor> consumerResponseStreams = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-    private RouteDefinitionInternal routeDefinition;
+    private final ConcurrentHashMap<String, RouteRegistration> routeDefinitions = new ConcurrentHashMap<>();
 
-
-    public DisruptorRingBufferEndpoint(int ringBufferSize, boolean disableDefaultOutput) {
+    public DisruptorRingBufferEndpoint(int ringBufferSize) {
         this.ringBufferSize = ringBufferSize;
-        disruptor = new Disruptor<>(DisruptorRingBufferEvent::new, ringBufferSize, VirtualThreadFactory.INSTANCE);
-        this.disableDefaultOutput = disableDefaultOutput;
+        Disruptor<DisruptorRingBufferEvent> disruptor = new Disruptor<>(DisruptorRingBufferEvent::new, ringBufferSize, VirtualThreadFactory.INSTANCE);
         ringBuffer = disruptor.start();
     }
 
     @Override
-    public void setRouteDefinition(RouteDefinitionInternal routeDefinition) {
-        this.routeDefinition = routeDefinition;
+    public void removeRouteDefinition(String routeId) {
+        unsubscribe(routeId);
+    }
+
+    @Override
+    public void addRouteDefinition(RouteDefinitionInternal routeDefinition) {
+        subscribe(routeDefinition);
     }
 
     @Override
     public void start() {
-        if (!disableDefaultOutput) {
-            subscribe();
-        }
+
     }
 
     @Override
@@ -51,47 +50,64 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     }
 
     @Override
-    public void process(Exchange exchange) {
-        if (!ringBuffer.tryPublishEvent((event, sequence) -> event.setExchange(exchange))) {
+    public void process(Exchange exchange, RouteDefinitionInternal routeDefinition) {
+        try {
             exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
             exchange.setProperty(RING_BUFFER, ringBuffer);
-            routeDefinition.getErrorHandler().handleError(new RingBufferOverflowException("Ring buffer overflow"), exchange);
-        }
-    }
-
-    public void subscribe() {
-        BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = new BatchEventProcessorBuilder()
-                .build(ringBuffer, ringBuffer.newBarrier(), this::onEvent);
-        ringBuffer.addGatingSequences(batchEventProcessor.getSequence());
-        executor.execute(batchEventProcessor);
-    }
-
-    private void onEvent(DisruptorRingBufferEvent event, long sequence, boolean endOfBatch) {
-        Exchange exchange = event.getExchange();
-        exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
-        exchange.setProperty(RING_BUFFER, ringBuffer);
-        try {
-            routeDefinition.getProcessors().forEach(processor -> processor.process(exchange));
+            if (!ringBuffer.tryPublishEvent((event, sequence) -> event.setExchange(exchange))) {
+                routeDefinition.getErrorHandler().handleError(new RingBufferOverflowException("Ring buffer overflow"), exchange);
+            }
         } catch (Throwable t) {
             routeDefinition.getErrorHandler().handleError(t, exchange);
         }
     }
 
-    public static class RingBufferOverflowException extends RuntimeException {
-        public RingBufferOverflowException(String message) {
-            super(message);
+    private void subscribe(RouteDefinitionInternal routeDefinition) {
+        BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = new BatchEventProcessorBuilder()
+                .build(ringBuffer, ringBuffer.newBarrier(), (event, sequence, endOfBatch) -> onEvent(event, routeDefinition));
+        ringBuffer.addGatingSequences(batchEventProcessor.getSequence());
+        executor.execute(batchEventProcessor);
+        //TODO handle unsupported case where a route is registered more than once
+        //TODO check if there a potential threading error case between starting the batch processor, registration, and messages flowing in
+        routeDefinitions.putIfAbsent(routeDefinition.getRouteId(), new RouteRegistration(batchEventProcessor, routeDefinition));
+    }
+
+    private void unsubscribe(String routeId) {
+        RouteRegistration routeRegistration = routeDefinitions.remove(routeId);
+        if (routeRegistration != null) {
+            BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = routeRegistration.getBatchEventProcessor();
+            batchEventProcessor.halt();
+            ringBuffer.removeGatingSequence(batchEventProcessor.getSequence());
         }
     }
 
-    public static class DisruptorRingBufferEvent {
-        private Exchange exchange;
-
-        public Exchange getExchange() {
-            return exchange;
-        }
-
-        public void setExchange(Exchange exchange) {
-            this.exchange = exchange;
+    private void onEvent(DisruptorRingBufferEvent event, RouteDefinitionInternal routeDefinition) {
+        Exchange exchange = event.getExchange();
+        try {
+            exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
+            exchange.setProperty(RING_BUFFER, ringBuffer);
+            routeDefinition.getProcessors().forEach(processor -> processor.process(exchange, routeDefinition));
+        } catch (Throwable t) {
+            routeDefinition.getErrorHandler().handleError(t, exchange);
         }
     }
+
+    private static class RouteRegistration {
+        private final BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor;
+        private final RouteDefinitionInternal routeDefinition;
+
+        RouteRegistration(BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor, RouteDefinitionInternal routeDefinition) {
+            this.batchEventProcessor = batchEventProcessor;
+            this.routeDefinition = routeDefinition;
+        }
+
+        BatchEventProcessor<DisruptorRingBufferEvent> getBatchEventProcessor() {
+            return batchEventProcessor;
+        }
+
+        RouteDefinitionInternal getRouteDefinition() {
+            return routeDefinition;
+        }
+    }
+
 }

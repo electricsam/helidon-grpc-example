@@ -4,7 +4,7 @@ This project is a playground to experiment and test the use of various technolog
  for gRPC streaming.  Since this project is experimental in nature, it should be considered 
 a proof of concept and not all aspects of a production-ready application have been implemented.
 
-### At this point in time this project achieves the following prototype goals
+### At this point in time, this project achieves the following prototype goals
 
  - Defines a protobuf schema and generates the required Java classes
  - Contains a Helidon gRPC service that accepts one input stream of messages
@@ -22,6 +22,8 @@ a proof of concept and not all aspects of a production-ready application have be
  - - Partially completed - Errors in service terminate streams. More comprehensive testing needed.
  - ~~Need to understand memory management in the CLI.  There may be a memory leak in the producer.~~
  - - Messages were being sent in a rapid loop, overwhelming the netty buffer. Added a configurable delay with a reasonable default.
+ - - Still need to better understand what the threshold is and if this can be improved.
+ - - Disabling Netty direct buffers seems to be difficult and tried properties does not appear to have the desired effect.
  - Need to add unit tests
  - Need to set up performance tests to evaluate the effect changes to the project have on throughput and memory
 
@@ -33,31 +35,54 @@ install these.
  - JDK 21 (one example): https://www.oracle.com/java/technologies/downloads/ 
  - Maven: https://maven.apache.org/
 
+### Mac Tips
 If you are on a Mac, here are some tips for installing some resources:
- - Use SDKMan to install both the JDK and Maven. https://sdkman.io/
- - - Install SDKMan with 'curl -s "https://get.sdkman.io" | bash'
- - - Install Java 21 through SDK Man with 'sdk install java 21.0.6-graal' (or whatever flavor of Java 21 you want)
- - - Install Maven through SDK Man with 'sdk install maven 3.9.0'
- - You might also need to install Rosetta 2 to generate the protobuf Java classes:
- - - softwareupdate --install-rosetta
+Use SDKMan to install both the JDK and Maven. https://sdkman.io/
 
+Install SDKMan with:
+```bash
+curl -s "https://get.sdkman.io" | bash
+```
+Install Java 21 through SDKMan with:
+```bash
+sdk install java 21.0.6-graal
+```
+(or whatever flavor of Java 21 you want)
+
+Install Maven through SDK Man with:
+```bash
+sdk install maven 3.9.0
+```
+You might also need to install Rosetta 2 to generate the protobuf Java classes:
+```bash
+softwareupdate --install-rosetta
+```
+
+### Build the project
 To build the project, from the root of the project, run:
- - mvn clean install
+```bash
+mvn clean install
+```
 
 This will build all three modules: proto, service, cli.
 
 ## Running The Example
 
 To start the service, from the root of the project, run:
- - java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT.jar
+```bash
+java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT.jar
+```
 
 
 To start a streaming producer, from the root of the project, run:
- - java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce stream
-
+```bash
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce stream
+````
 
 To start a simple consumer, from the root of the project, run:
- - java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar consume print
+```bash
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar consume print
+````
 
 Multiple consumers can be started to demonstrate the service's multicast capabilities.
 
@@ -86,6 +111,26 @@ protected void configure() {
                 .errorHandler(consumerStreamErrorHandler)
                 .process(consumerStreamingProcessor);
 }
+```
+
+#### Update 2025/03/24
+
+Experimental EIP routing has been added that just echoes back responses to the 
+producer
+
+```java
+    protected void configure() {
+        from(producerEcho)
+                .process(logRequest)
+                .process(setReply)
+                .to(producerEcho);
+    }
+```
+
+This can be invoked from the CLI with:
+
+```bash
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce experimental-eip --echo
 ```
 
 
