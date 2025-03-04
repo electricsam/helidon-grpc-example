@@ -1,5 +1,7 @@
 package electricsam.helidon.grpc.example.server.experimental.eip.core.impl;
 
+import com.lmax.disruptor.BatchEventProcessor;
+import com.lmax.disruptor.BatchEventProcessorBuilder;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import electricsam.helidon.grpc.example.server.consumer.VirtualThreadFactory;
@@ -16,6 +18,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     public static final String RING_BUFFER = "RING_BUFFER";
 
     private final int ringBufferSize;
+    private final boolean disableDefaultOutput;
 
     private final Disruptor<DisruptorRingBufferEvent> disruptor;
     private final RingBuffer<DisruptorRingBufferEvent> ringBuffer;
@@ -24,9 +27,10 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     private RouteDefinitionInternal routeDefinition;
 
 
-    public DisruptorRingBufferEndpoint(int ringBufferSize) {
+    public DisruptorRingBufferEndpoint(int ringBufferSize, boolean disableDefaultOutput) {
         this.ringBufferSize = ringBufferSize;
         disruptor = new Disruptor<>(DisruptorRingBufferEvent::new, ringBufferSize, VirtualThreadFactory.INSTANCE);
+        this.disableDefaultOutput = disableDefaultOutput;
         ringBuffer = disruptor.start();
     }
 
@@ -37,12 +41,13 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
 
     @Override
     public void start() {
-
+        if (!disableDefaultOutput) {
+            subscribe();
+        }
     }
 
     @Override
     public void stop() {
-
     }
 
     @Override
@@ -51,6 +56,24 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
             exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
             exchange.setProperty(RING_BUFFER, ringBuffer);
             routeDefinition.getErrorHandler().handleError(new RingBufferOverflowException("Ring buffer overflow"), exchange);
+        }
+    }
+
+    public void subscribe() {
+        BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = new BatchEventProcessorBuilder()
+                .build(ringBuffer, ringBuffer.newBarrier(), this::onEvent);
+        ringBuffer.addGatingSequences(batchEventProcessor.getSequence());
+        executor.execute(batchEventProcessor);
+    }
+
+    private void onEvent(DisruptorRingBufferEvent event, long sequence, boolean endOfBatch) {
+        Exchange exchange = event.getExchange();
+        exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
+        exchange.setProperty(RING_BUFFER, ringBuffer);
+        try {
+            routeDefinition.getProcessors().forEach(processor -> processor.process(exchange));
+        } catch (Throwable t) {
+            routeDefinition.getErrorHandler().handleError(t, exchange);
         }
     }
 

@@ -26,7 +26,6 @@ public interface GrpcExampleModule {
     @Provides
     @Singleton
     static ConsumerService consumerService() {
-//        return new LinkedBlockingQueueConsumerService();
         return new DisruptorConsumerService();
     }
 
