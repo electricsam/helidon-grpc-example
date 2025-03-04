@@ -29,13 +29,5 @@ public class ServiceRouteBuilder extends RouteBuilder {
                 .errorHandler(producerRouteErrorHandler)
                 .process(producerReplyProcessor)
                 .to(disruptorRingBufferEndpoint);
-
-        from(consumerRegistrationEndpoint)
-                .errorHandler(consumerRegistrationErrorHandler)
-                .process(consumerSubscriptionProcessor);
-
-        from(disruptorRingBufferEndpoint)
-                .errorHandler(consumerStreamErrorHandler)
-                .process(consumerStreamingProcessor);
     }
 }
