@@ -1,11 +1,11 @@
-package electricsam.helidon.grpc.example.server.experimental.eip.core.impl;
+package electricsam.helidon.grpc.example.server.experimental.eip.module.disruptor;
 
 import com.lmax.disruptor.BatchEventProcessor;
 import com.lmax.disruptor.BatchEventProcessorBuilder;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
-import electricsam.helidon.grpc.example.server.consumer.VirtualThreadFactory;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
 
@@ -26,7 +26,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
 
     public DisruptorRingBufferEndpoint(int ringBufferSize) {
         this.ringBufferSize = ringBufferSize;
-        Disruptor<DisruptorRingBufferEvent> disruptor = new Disruptor<>(DisruptorRingBufferEvent::new, ringBufferSize, VirtualThreadFactory.INSTANCE);
+        Disruptor<DisruptorRingBufferEvent> disruptor = new Disruptor<>(DisruptorRingBufferEvent::new, ringBufferSize, r -> Thread.ofVirtual().unstarted(r));
         ringBuffer = disruptor.start();
     }
 
@@ -50,15 +50,16 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     }
 
     @Override
-    public void process(Exchange exchange, RouteDefinitionInternal routeDefinition) {
+    public void process(Exchange exchange, ErrorHandler errorHandler) {
         try {
             exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
             exchange.setProperty(RING_BUFFER, ringBuffer);
-            if (!ringBuffer.tryPublishEvent((event, sequence) -> event.setExchange(exchange))) {
-                routeDefinition.getErrorHandler().handleError(new RingBufferOverflowException("Ring buffer overflow"), exchange);
+            Exchange copy = exchange.shallowCopy();
+            if (!ringBuffer.tryPublishEvent((event, sequence) -> event.setExchange(copy))) {
+                errorHandler.handleError(new RingBufferOverflowException("Ring buffer overflow"), exchange);
             }
         } catch (Throwable t) {
-            routeDefinition.getErrorHandler().handleError(t, exchange);
+            errorHandler.handleError(t, exchange);
         }
     }
 
@@ -86,7 +87,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
         try {
             exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
             exchange.setProperty(RING_BUFFER, ringBuffer);
-            routeDefinition.getProcessors().forEach(processor -> processor.process(exchange, routeDefinition));
+            routeDefinition.getProcessors().forEach(processor -> processor.process(exchange, routeDefinition.getErrorHandler()));
         } catch (Throwable t) {
             routeDefinition.getErrorHandler().handleError(t, exchange);
         }

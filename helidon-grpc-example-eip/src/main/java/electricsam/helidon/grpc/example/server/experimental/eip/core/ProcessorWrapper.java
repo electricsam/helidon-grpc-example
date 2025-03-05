@@ -9,7 +9,7 @@ class ProcessorWrapper implements Processable {
     }
 
     @Override
-    public void process(Exchange exchange, RouteDefinitionInternal routeDefinition) {
+    public void process(Exchange exchange, ErrorHandler errorHandler) {
         processor.process(exchange);
     }
 }

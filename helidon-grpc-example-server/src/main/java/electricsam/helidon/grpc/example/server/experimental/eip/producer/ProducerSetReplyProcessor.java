@@ -6,7 +6,7 @@ import electricsam.helidon.grpc.example.proto.ExampleGrpc.ProducerResponse;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Processor;
 
-import static electricsam.helidon.grpc.example.server.experimental.eip.core.impl.GrpcStreamEndpoint.COMPLETED;
+import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.COMPLETED;
 
 public class ProducerSetReplyProcessor implements Processor {
     @Override

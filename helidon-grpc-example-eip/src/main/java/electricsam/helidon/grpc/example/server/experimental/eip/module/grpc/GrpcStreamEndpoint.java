@@ -1,10 +1,7 @@
-package electricsam.helidon.grpc.example.server.experimental.eip.core.impl;
+package electricsam.helidon.grpc.example.server.experimental.eip.module.grpc;
 
 import com.google.protobuf.Descriptors.FileDescriptor;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.ExchangeImpl;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
 import io.grpc.stub.StreamObserver;
 import io.helidon.grpc.server.GrpcService;
 import io.helidon.grpc.server.ServiceDescriptor;
@@ -12,6 +9,7 @@ import io.helidon.grpc.server.ServiceDescriptor;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GrpcStreamEndpoint implements Endpoint, GrpcService {
 
@@ -24,7 +22,7 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
 
     private final String name;
     private final List<ProtoConfig> protoConfigs;
-    private RouteDefinitionInternal routeDefinition;
+    private final AtomicReference<RouteDefinitionInternal> routeDefinitionRef = new AtomicReference<>();
 
     //TODO can this be broken up to support only one service name + RPC name?
     public GrpcStreamEndpoint(String name, List<ProtoConfig> protoConfigs) {
@@ -39,15 +37,17 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
 
     @Override
     public void removeRouteDefinition(String routeId) {
-        throw new UnsupportedOperationException("gRCP stream endpoint does not support removing route definitions");
+        RouteDefinitionInternal routeDefinition = routeDefinitionRef.get();
+        if (routeDefinition != null && routeDefinition.getRouteId().equals(routeId)) {
+            routeDefinitionRef.set(null);
+        }
     }
 
     @Override
     public void addRouteDefinition(RouteDefinitionInternal routeDefinition) {
-        if (this.routeDefinition != null) {
+        if (!routeDefinitionRef.compareAndSet(null, routeDefinition)) {
             throw new IllegalStateException("Route definition already exists");
         }
-        this.routeDefinition = routeDefinition;
     }
 
     @Override
@@ -79,9 +79,9 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
                 try {
-                    routeDefinition.getProcessors().forEach(p -> p.process(exchange, routeDefinition));
+                    routeDefinitionRef.get().getProcessors().forEach(p -> p.process(exchange, routeDefinitionRef.get().getErrorHandler()));
                 } catch (Throwable t) {
-                    routeDefinition.getErrorHandler().handleError(t, exchange);
+                    routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
                 }
             }
 
@@ -91,7 +91,7 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
-                routeDefinition.getErrorHandler().handleError(t, exchange);
+                routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
             }
 
             public void onCompleted() {
@@ -101,9 +101,9 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, true);
                 try {
-                    routeDefinition.getProcessors().forEach(p -> p.process(exchange, routeDefinition));
+                    routeDefinitionRef.get().getProcessors().forEach(p -> p.process(exchange, routeDefinitionRef.get().getErrorHandler()));
                 } catch (Throwable t) {
-                    routeDefinition.getErrorHandler().handleError(t, exchange);
+                    routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
                 }
             }
         };
@@ -112,7 +112,7 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
 
     // TODO add visitors?
     @Override
-    public void process(Exchange exchange, RouteDefinitionInternal routeDefinition) {
+    public void process(Exchange exchange, ErrorHandler errorHandler) {
         try {
             // TODO handle types better
             StreamObserver responseStream = exchange.getProperty(RESPONSE_STREAM_OBSERVER, StreamObserver.class);
@@ -133,7 +133,7 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
                 responseStream.onNext(body);
             }
         } catch (Throwable t) {
-            routeDefinition.getErrorHandler().handleError(t, exchange);
+            errorHandler.handleError(t, exchange);
         }
     }
 

@@ -21,6 +21,7 @@
   <modules>
     <module>helidon-grpc-example-proto</module>
     <module>helidon-grpc-example-cli</module>
+    <module>helidon-grpc-example-eip</module>
     <module>helidon-grpc-example-server</module>
   </modules>
 

@@ -1,7 +1,9 @@
 package electricsam.helidon.grpc.example.server.experimental.eip.core;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class ExchangeImpl implements Exchange {
 
@@ -26,5 +28,18 @@ public class ExchangeImpl implements Exchange {
     @Override
     public <T> T getProperty(String key, Class<T> type) {
         return type.cast(properties.get(key));
+    }
+
+    @Override
+    public Set<String> getPropertyKeys() {
+        return Collections.unmodifiableSet(properties.keySet());
+    }
+
+    @Override
+    public Exchange shallowCopy() {
+        Exchange copy = new ExchangeImpl();
+        copy.setBody(body);
+        properties.forEach(copy::setProperty);
+        return copy;
     }
 }

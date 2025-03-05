@@ -5,8 +5,8 @@ import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Processor;
 import io.grpc.stub.StreamObserver;
 
-import static electricsam.helidon.grpc.example.server.experimental.eip.core.impl.GrpcStreamEndpoint.COMPLETED;
-import static electricsam.helidon.grpc.example.server.experimental.eip.core.impl.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER;
+import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.COMPLETED;
+import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER;
 
 public class ProducerLoggingProcessor implements Processor {
     @Override
