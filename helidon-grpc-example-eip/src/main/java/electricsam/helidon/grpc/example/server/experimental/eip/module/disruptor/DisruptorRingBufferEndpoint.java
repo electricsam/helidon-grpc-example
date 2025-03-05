@@ -4,10 +4,7 @@ import com.lmax.disruptor.BatchEventProcessor;
 import com.lmax.disruptor.BatchEventProcessorBuilder;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -50,7 +47,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     }
 
     @Override
-    public void process(Exchange exchange, ErrorHandler errorHandler) {
+    public boolean process(Exchange exchange, ErrorHandler errorHandler) {
         try {
             exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
             exchange.setProperty(RING_BUFFER, ringBuffer);
@@ -60,7 +57,9 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
             }
         } catch (Throwable t) {
             errorHandler.handleError(t, exchange);
+            return false;
         }
+        return true;
     }
 
     private void subscribe(RouteDefinitionInternal routeDefinition) {
@@ -84,13 +83,9 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
 
     private void onEvent(DisruptorRingBufferEvent event, RouteDefinitionInternal routeDefinition) {
         Exchange exchange = event.getExchange();
-        try {
-            exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
-            exchange.setProperty(RING_BUFFER, ringBuffer);
-            routeDefinition.getProcessors().forEach(processor -> processor.process(exchange, routeDefinition.getErrorHandler()));
-        } catch (Throwable t) {
-            routeDefinition.getErrorHandler().handleError(t, exchange);
-        }
+        exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
+        exchange.setProperty(RING_BUFFER, ringBuffer);
+        routeDefinition.process(exchange);
     }
 
     private static class RouteRegistration {

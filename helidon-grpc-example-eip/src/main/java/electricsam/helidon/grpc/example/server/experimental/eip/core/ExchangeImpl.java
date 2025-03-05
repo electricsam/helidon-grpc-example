@@ -31,6 +31,11 @@ public class ExchangeImpl implements Exchange {
     }
 
     @Override
+    public void clearProperties() {
+        properties.clear();
+    }
+
+    @Override
     public Set<String> getPropertyKeys() {
         return Collections.unmodifiableSet(properties.keySet());
     }

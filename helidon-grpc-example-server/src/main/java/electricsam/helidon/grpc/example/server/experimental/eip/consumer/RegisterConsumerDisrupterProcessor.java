@@ -6,9 +6,11 @@ import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandle
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Processor;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilder;
+import io.grpc.stub.StreamObserver;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER;
 import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER_ID;
 
 public class RegisterConsumerDisrupterProcessor implements Processor {
@@ -17,18 +19,15 @@ public class RegisterConsumerDisrupterProcessor implements Processor {
 
     private final Endpoint ringBuffer;
     private final Endpoint consumer;
-    private final Processor prepareConsumerResponse;
     private final ErrorHandler ringBufferToConsumerErrorHandler;
 
     public RegisterConsumerDisrupterProcessor(
             Endpoint ringBuffer,
             Endpoint consumer,
-            Processor prepareConsumerResponse,
             ErrorHandler ringBufferToConsumerErrorHandler
     ) {
         this.ringBuffer = ringBuffer;
         this.consumer = consumer;
-        this.prepareConsumerResponse = prepareConsumerResponse;
         this.ringBufferToConsumerErrorHandler = ringBufferToConsumerErrorHandler;
     }
 
@@ -36,9 +35,10 @@ public class RegisterConsumerDisrupterProcessor implements Processor {
     public void process(Exchange exchange) {
         ConsumerRegistration registration = exchange.getBody(ConsumerRegistration.class);
         String observerId = exchange.getProperty(RESPONSE_STREAM_OBSERVER_ID, String.class);
+        StreamObserver responseStream = exchange.getProperty(RESPONSE_STREAM_OBSERVER, StreamObserver.class);
         if (registration.getStart()) {
             RingBufferRouteBuilder routeBuilder = new RingBufferRouteBuilder(
-                    ringBuffer, consumer, prepareConsumerResponse, ringBufferToConsumerErrorHandler);
+                    responseStream, ringBuffer, consumer, ringBufferToConsumerErrorHandler);
             dynamicRoutes.put(observerId, routeBuilder);
             routeBuilder.configure();
         } else {

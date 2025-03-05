@@ -24,10 +24,12 @@ public class ConsumeStreamExecutor {
     private final Condition stopped = stoppingLock.newCondition();
     private final String host;
     private final int port;
+    private final ServiceName serviceName;
 
     public ConsumeStreamExecutor(ConsumeStreamExecutorConfiguration configuration) {
         this.host = configuration.getHost();
         this.port = configuration.getPort();
+        this.serviceName = configuration.getServiceName();
     }
 
     public void addVisitor(ConsumeStreamExecutorVisitor visitor) {
@@ -35,7 +37,7 @@ public class ConsumeStreamExecutor {
     }
 
     public void run() {
-        GrpcServiceClient client = GrpcServiceClientFactory.create(ServiceName.ConsumerService, host, port);
+        GrpcServiceClient client = GrpcServiceClientFactory.create(serviceName, host, port);
         ConsumerRegistration registration = ConsumerRegistration.newBuilder().setStart(true).setId(UUID.randomUUID().toString()).build();
         StreamObserver<ConsumerResponse> observer = new StreamObserver<>() {
             @Override
@@ -55,7 +57,7 @@ public class ConsumeStreamExecutor {
                 complete();
             }
         };
-        StreamObserver<ConsumerRegistration> clientStream = client.bidiStreaming("RegisterConsumer", observer);
+        StreamObserver<ConsumerRegistration> clientStream = client.bidiStreaming(ServiceMethodName.RegisterConsumer.toString(), observer);
         clientStream.onNext(registration);
         System.out.println("Registered " + registration.getId());
         lock.lock();

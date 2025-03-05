@@ -8,6 +8,7 @@ public class ConsumerResponseErrorHandler implements ErrorHandler {
 
     @Override
     public void handleError(Throwable t, Exchange exchange) {
-
+        // TODO implement me
+        t.printStackTrace();
     }
 }

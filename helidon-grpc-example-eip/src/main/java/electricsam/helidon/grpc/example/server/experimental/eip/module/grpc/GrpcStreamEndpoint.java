@@ -3,15 +3,13 @@ package electricsam.helidon.grpc.example.server.experimental.eip.module.grpc;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
 import io.grpc.stub.StreamObserver;
-import io.helidon.grpc.server.GrpcService;
 import io.helidon.grpc.server.ServiceDescriptor;
 
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class GrpcStreamEndpoint implements Endpoint, GrpcService {
+public class GrpcStreamEndpoint implements Endpoint {
 
     public static final String RESPONSE_STREAM_OBSERVER = "RESPONSE_STREAM_OBSERVER";
     public static final String RESPONSE_STREAM_OBSERVER_ID = "RESPONSE_STREAM_OBSERVER_ID";
@@ -20,19 +18,13 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
 
     private final ConcurrentHashMap<String, StreamObserver<?>> responseStreams = new ConcurrentHashMap<>();
 
-    private final String name;
-    private final List<ProtoConfig> protoConfigs;
+    private final String methodName;
+    private final FileDescriptor fileDescriptor;
     private final AtomicReference<RouteDefinitionInternal> routeDefinitionRef = new AtomicReference<>();
 
-    //TODO can this be broken up to support only one service name + RPC name?
-    public GrpcStreamEndpoint(String name, List<ProtoConfig> protoConfigs) {
-        this.name = name;
-        this.protoConfigs = protoConfigs;
-    }
-
-    @Override
-    public String name() {
-        return name;
+    GrpcStreamEndpoint(String methodName, FileDescriptor fileDescriptor) {
+        this.methodName = methodName;
+        this.fileDescriptor = fileDescriptor;
     }
 
     @Override
@@ -62,9 +54,8 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
         responseStreams.clear();
     }
 
-    @Override
     public void update(ServiceDescriptor.Rules rules) {
-        protoConfigs.forEach(protoConfig -> rules.proto(protoConfig.getFileDescriptor()).bidirectional(protoConfig.getName(), this::bidi));
+        rules.proto(fileDescriptor).bidirectional(methodName, this::bidi);
     }
 
     private StreamObserver<Object> bidi(StreamObserver<?> responseStream) {
@@ -78,11 +69,7 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
-                try {
-                    routeDefinitionRef.get().getProcessors().forEach(p -> p.process(exchange, routeDefinitionRef.get().getErrorHandler()));
-                } catch (Throwable t) {
-                    routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
-                }
+                routeDefinitionRef.get().process(exchange);
             }
 
             public void onError(Throwable t) {
@@ -100,11 +87,7 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, true);
-                try {
-                    routeDefinitionRef.get().getProcessors().forEach(p -> p.process(exchange, routeDefinitionRef.get().getErrorHandler()));
-                } catch (Throwable t) {
-                    routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
-                }
+                routeDefinitionRef.get().process(exchange);
             }
         };
     }
@@ -112,13 +95,13 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
 
     // TODO add visitors?
     @Override
-    public void process(Exchange exchange, ErrorHandler errorHandler) {
+    public boolean process(Exchange exchange, ErrorHandler errorHandler) {
         try {
             // TODO handle types better
             StreamObserver responseStream = exchange.getProperty(RESPONSE_STREAM_OBSERVER, StreamObserver.class);
             if (responseStream == null) {
                 String responseStreamId = exchange.getProperty(RESPONSE_STREAM_OBSERVER_ID, String.class);
-                if (responseStreamId == null) {
+                if (responseStreamId != null) {
                     responseStream = responseStreams.get(responseStreamId);
                 }
             }
@@ -134,26 +117,9 @@ public class GrpcStreamEndpoint implements Endpoint, GrpcService {
             }
         } catch (Throwable t) {
             errorHandler.handleError(t, exchange);
+            return false;
         }
-    }
-
-
-    public static class ProtoConfig {
-        private final String name;
-        private final FileDescriptor fileDescriptor;
-
-        public ProtoConfig(String name, FileDescriptor fileDescriptor) {
-            this.name = name;
-            this.fileDescriptor = fileDescriptor;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public FileDescriptor getFileDescriptor() {
-            return fileDescriptor;
-        }
+        return true;
     }
 
 }

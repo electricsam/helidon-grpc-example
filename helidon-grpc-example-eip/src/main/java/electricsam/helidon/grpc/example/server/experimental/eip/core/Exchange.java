@@ -12,6 +12,8 @@ public interface Exchange {
 
     <T> T getProperty(String key, Class<T> type);
 
+    void clearProperties();
+
     Set<String> getPropertyKeys();
 
     Exchange shallowCopy();

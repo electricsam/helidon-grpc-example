@@ -6,7 +6,10 @@ import picocli.CommandLine.Spec;
 
 @Command(
     name = "consume",
-    subcommands = { ConsumePrintCommand.class },
+    subcommands = {
+            ConsumePrintCommand.class,
+            ConsumePrintEipCommand.class
+    },
     mixinStandardHelpOptions = true,
     description = "commands to send messages to the gRPC server")
 class ConsumerCommands implements Runnable {

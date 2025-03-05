@@ -4,10 +4,10 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 @Command(
-        name = "print",
+        name = "experimental-eip",
         mixinStandardHelpOptions = true,
         description = "prints messages from the gRPC server")
-class ConsumePrintCommand extends ConsumePrintBaseCommand {
+class ConsumePrintEipCommand extends ConsumePrintBaseCommand {
 
     @CommandLine.Option(names = "--host", description = "The server host", defaultValue = "localhost")
     private String host;
@@ -20,7 +20,7 @@ class ConsumePrintCommand extends ConsumePrintBaseCommand {
         return ConsumeStreamExecutorConfiguration.builder()
                 .setHost(host)
                 .setPort(port)
-                .setServiceName(ServiceName.ConsumerService)
+                .setServiceName(ServiceName.EipConsumerService)
                 .build();
     }
 

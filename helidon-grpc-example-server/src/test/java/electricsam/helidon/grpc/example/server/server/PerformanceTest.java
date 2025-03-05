@@ -82,6 +82,7 @@ public class PerformanceTest {
 
         ConsumeStreamExecutor consumer = new ConsumeStreamExecutor(ConsumeStreamExecutorConfiguration.builder()
                 .setPort(port)
+                .setServiceName(ServiceName.ConsumerService)
                 .build());
 
         consumer.addVisitor(new ConsumeStreamExecutorVisitor() {

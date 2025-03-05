@@ -2,5 +2,5 @@ package electricsam.helidon.grpc.example.server.experimental.eip.core;
 
 public interface Processable {
 
-    void process(Exchange exchange, ErrorHandler errorHandler);
+    boolean process(Exchange exchange, ErrorHandler errorHandler);
 }

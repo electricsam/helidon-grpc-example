@@ -9,7 +9,8 @@ class ProcessorWrapper implements Processable {
     }
 
     @Override
-    public void process(Exchange exchange, ErrorHandler errorHandler) {
+    public boolean process(Exchange exchange, ErrorHandler errorHandler) {
         processor.process(exchange);
+        return true;
     }
 }

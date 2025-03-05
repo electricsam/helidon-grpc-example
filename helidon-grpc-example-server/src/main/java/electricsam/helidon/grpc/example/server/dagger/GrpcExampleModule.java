@@ -2,11 +2,16 @@ package electricsam.helidon.grpc.example.server.dagger;
 
 import dagger.Module;
 import dagger.Provides;
+import electricsam.helidon.grpc.example.proto.ExampleGrpc;
 import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
 import electricsam.helidon.grpc.example.server.consumer.DisruptorConsumerService;
-import electricsam.helidon.grpc.example.server.experimental.eip.consumer.*;
+import electricsam.helidon.grpc.example.server.experimental.eip.consumer.ConsumerRegistrationErrorHandler;
+import electricsam.helidon.grpc.example.server.experimental.eip.consumer.ConsumerResponseErrorHandler;
+import electricsam.helidon.grpc.example.server.experimental.eip.consumer.RegisterConsumerDisrupterProcessor;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
 import electricsam.helidon.grpc.example.server.experimental.eip.module.disruptor.DisruptorRingBufferEndpoint;
+import electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrcpStreamEndpointFactory;
+import electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrcpStreamService;
 import electricsam.helidon.grpc.example.server.experimental.eip.producer.*;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.ServiceRouteBuilder;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
@@ -14,7 +19,9 @@ import electricsam.helidon.grpc.example.server.producer.ProducerServiceImpl;
 import electricsam.helidon.grpc.example.server.server.GrpcExampleServer;
 import electricsam.helidon.grpc.example.server.server.GrpcExampleServerImpl;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
+import java.util.Arrays;
 import java.util.Collections;
 
 @Module
@@ -37,28 +44,38 @@ public interface GrpcExampleModule {
     static GrpcExampleServer grpcExampleServer(
             ConsumerService consumerService,
             ProducerService producerService,
-            ProducerEchoEndpoint expermientalProducerEchoEndpoint,
-            RouteContext experimentalRouteContext
+            RouteContext experimentalRouteContext,
+            @Named("ProducerGrcpStreamService") GrcpStreamService experimentalProducerService,
+            @Named("ConsumerGrcpStreamService") GrcpStreamService experimentalConsumerService
     ) {
         return new GrpcExampleServerImpl(
                 producerService,
                 consumerService,
-                expermientalProducerEchoEndpoint,
+                experimentalProducerService,
+                experimentalConsumerService,
                 experimentalRouteContext
         );
     }
 
     // TODO below this is experimental
-    @Provides
-    @Singleton
-    static ProducerEchoEndpoint experimentalProducerEchoEndpoint() {
-        return new ProducerEchoEndpoint();
-    }
 
     @Provides
     @Singleton
-    static ConsumerEndpoint experimentalConsumerEndpoint() {
-        return new ConsumerEndpoint();
+    @Named("ProduceStreamEchoEndpoint")
+    static Endpoint experimentalProduceStreamEchoEndpoint(
+            @Named("ProducerGrcpStreamEndpointFactory") GrcpStreamEndpointFactory factory
+    ) {
+        return factory.getEndpoint("ProduceStreamEcho");
+    }
+
+
+    @Provides
+    @Singleton
+    @Named("RegisterConsumerEndpoint")
+    static Endpoint experimentalConsumerEndpoint(
+            @Named("ConsumerGrcpStreamEndpointFactory") GrcpStreamEndpointFactory factory
+    ) {
+        return factory.getEndpoint("RegisterConsumer");
     }
 
     @Provides
@@ -81,7 +98,10 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
-    static ProducerRouteErrorHandler experimentalProducerRouteErrorHandler(ProducerEchoEndpoint endpoint, ProducerTemplate producerTemplate) {
+    static ProducerRouteErrorHandler experimentalProducerRouteErrorHandler(
+            @Named("ProduceStreamEchoEndpoint") Endpoint endpoint,
+            ProducerTemplate producerTemplate
+    ) {
         return new ProducerRouteErrorHandler(endpoint, producerTemplate);
     }
 
@@ -113,35 +133,86 @@ public interface GrpcExampleModule {
     @Singleton
     static RegisterConsumerDisrupterProcessor experimentalRegisterConsumerDisrupterProcessor(
             DisruptorRingBufferEndpoint ringBufferEndpoint,
-            ConsumerEndpoint consumerEndpoint,
-            PrepareConsumerResponseProcessor prepareConsumerResponseProcessor,
+            @Named("RegisterConsumerEndpoint") Endpoint consumerEndpoint,
             ConsumerResponseErrorHandler consumerResponseErrorHandler
     ) {
         return new RegisterConsumerDisrupterProcessor(
                 ringBufferEndpoint,
                 consumerEndpoint,
-                prepareConsumerResponseProcessor,
                 consumerResponseErrorHandler);
+    }
+
+
+    @Provides
+    @Singleton
+    @Named("ProduceStreamEndpoint")
+    static Endpoint experimentalProduceStreamEndpoint(
+            @Named("ProducerGrcpStreamEndpointFactory") GrcpStreamEndpointFactory factory
+    ) {
+        return factory.getEndpoint("ProduceStream");
     }
 
     @Provides
     @Singleton
-    static ProducerEndpoint experimentalProducerEndpoint() {
-        return new ProducerEndpoint();
+    static NotCompletedFilter experimentalNotCompletedFilter() {
+        return new NotCompletedFilter();
+    }
+
+    @Provides
+    @Singleton
+    @Named("ProducerGrcpStreamEndpointFactory")
+    static GrcpStreamEndpointFactory experimentalProducerGrcpStreamEndpointFactory() {
+        return new GrcpStreamEndpointFactory(
+                "EipProducerService",
+                ExampleGrpc.getDescriptor(),
+                Arrays.asList("ProduceStream", "ProduceStreamEcho")
+        );
+    }
+
+
+    @Provides
+    @Singleton
+    @Named("ConsumerGrcpStreamEndpointFactory")
+    static GrcpStreamEndpointFactory experimentalConsumerGrcpStreamEndpointFactory() {
+        return new GrcpStreamEndpointFactory(
+                "EipConsumerService",
+                ExampleGrpc.getDescriptor(),
+                Collections.singletonList("RegisterConsumer")
+        );
+    }
+
+    @Provides
+    @Singleton
+    @Named("ConsumerGrcpStreamService")
+    static GrcpStreamService experimentalConsumerGrcpStreamService(
+            @Named("ConsumerGrcpStreamEndpointFactory") GrcpStreamEndpointFactory factory
+    ) {
+        return factory.getService();
+    }
+
+    @Provides
+    @Singleton
+    @Named("ProducerGrcpStreamService")
+    static GrcpStreamService experimentalProducerGrcpStreamService(
+            @Named("ProducerGrcpStreamEndpointFactory") GrcpStreamEndpointFactory factory
+    ) {
+        return factory.getService();
     }
 
     @Provides
     @Singleton
     static RouteBuilder experimentalRouteBuilder(
-            ProducerEchoEndpoint producerEchoEndpoint,
+            @Named("ProduceStreamEchoEndpoint") Endpoint producerEchoEndpoint,
             ProducerLoggingProcessor producerLoggingProcessor,
             ProducerSetReplyProcessor processorsSetReplyProcessor,
             ProducerRouteErrorHandler producerRouteErrorHandler,
-            ConsumerEndpoint consumerEndpoint,
+            @Named("RegisterConsumerEndpoint") Endpoint consumerEndpoint,
             ConsumerRegistrationErrorHandler consumerRegistrationErrorHandler,
             RegisterConsumerDisrupterProcessor registerConsumerDisrupterProcessor,
             DisruptorRingBufferEndpoint ringBufferEndpoint,
-            ProducerEndpoint producerEndpoint
+            @Named("ProduceStreamEndpoint") Endpoint producerEndpoint,
+            PrepareConsumerResponseProcessor prepareConsumerResponseProcessor,
+            NotCompletedFilter notCompletedFilter
     ) {
         return new ServiceRouteBuilder(
                 producerEchoEndpoint,
@@ -152,7 +223,9 @@ public interface GrpcExampleModule {
                 consumerRegistrationErrorHandler,
                 registerConsumerDisrupterProcessor,
                 ringBufferEndpoint,
-                producerEndpoint
+                producerEndpoint,
+                prepareConsumerResponseProcessor,
+                notCompletedFilter
         );
     }
 

@@ -2,36 +2,41 @@ package electricsam.helidon.grpc.example.server.server;
 
 import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContext;
-import electricsam.helidon.grpc.example.server.experimental.eip.producer.ProducerEchoEndpoint;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import io.helidon.config.Config;
 import io.helidon.grpc.server.GrpcRouting;
 import io.helidon.grpc.server.GrpcServer;
 import io.helidon.grpc.server.GrpcServerConfiguration;
+import io.helidon.grpc.server.GrpcService;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.helidon.config.ConfigSources.*;
+import static io.helidon.config.ConfigSources.systemProperties;
 
 public class GrpcExampleServerImpl implements GrpcExampleServer {
 
     private final ProducerService producerService;
     private final ConsumerService consumerService;
-    private final ProducerEchoEndpoint experimentalEipProducerEchoEndpoint;
+    private final GrpcService experimentalEipProducerService;
     private final RouteContext experimentalRouteContext;
+    private final GrpcService experimentalEipConsumerService;
+
+
     private final AtomicReference<GrpcServer> grpcServerRef = new AtomicReference<>();
 
     public GrpcExampleServerImpl(
             ProducerService producerService,
             ConsumerService consumerService,
-            ProducerEchoEndpoint experimentalEipProducerEchoEndpoint,
+            GrpcService experimentalEipProducerService,
+            GrpcService experimentalEipConsumerService,
             RouteContext experimentalRouteContext
     ) {
         this.producerService = producerService;
         this.consumerService = consumerService;
-        this.experimentalEipProducerEchoEndpoint = experimentalEipProducerEchoEndpoint;
+        this.experimentalEipProducerService = experimentalEipProducerService;
         this.experimentalRouteContext = experimentalRouteContext;
+        this.experimentalEipConsumerService = experimentalEipConsumerService;
     }
 
     @Override
@@ -41,7 +46,8 @@ public class GrpcExampleServerImpl implements GrpcExampleServer {
 
         GrpcServerConfiguration config = GrpcServerConfiguration.create(Config.builder().sources(systemProperties()).build());
         GrpcRouting routing = GrpcRouting.builder()
-                .register(experimentalEipProducerEchoEndpoint)
+                .register(experimentalEipProducerService)
+                .register(experimentalEipConsumerService)
                 .register(consumerService)
                 .register(producerService)
                 .build();
