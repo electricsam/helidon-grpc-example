@@ -113,7 +113,7 @@ protected void configure() {
 }
 ```
 
-#### Update 2025/03/24
+#### Update 2025/03/04
 
 Experimental EIP routing has been added that just echoes back responses to the 
 producer
@@ -133,6 +133,56 @@ This can be invoked from the CLI with:
 java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce experimental-eip --echo
 ```
 
+
+#### Update 2025/03/05
+
+A complete experimental route has been added. Testing and bug fixes still need to be completed.  There are known issues, but the 
+basic case of a single producer and consumer does allow messages to flow from producer to consumer.
+
+```java
+    public void configure() {
+        from(producerEcho)
+                .errorHandler(producerErrorHandler)
+                .process(logRequest)
+                .process(setProducerReply)
+                .to(producerEcho);
+
+        from(producer)
+                .errorHandler(producerErrorHandler)
+                .process(logRequest)
+                .process(setProducerReply)
+                .to(producer)
+                .filter(notCompleted)
+                .process(prepareConsumerResponse)
+                .to(ringBuffer);
+
+        from(consumer)
+                .errorHandler(consumerErrorHandler)
+                .process(registerConsumerDisruptor);
+    }
+```
+
+```java
+    public void configure() {
+        from(ringBuffer)
+                .errorHandler(errorHandler)
+                .process(exchange -> {
+                    exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
+                    exchange.setProperty(COMPLETED, false);
+                })
+                .to(consumer);
+    }
+```
+
+The corresponding CLI commands are:
+
+```bash
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce experimental-eip
+```
+
+```bash
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar consume experimental-eip
+```
 
 
 
