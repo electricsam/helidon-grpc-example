@@ -1,11 +1,13 @@
-package electricsam.helidon.grpc.example.server.experimental.eip.core;
+package electricsam.helidon.grpc.example.server.experimental.eip.core.impl;
+
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ExchangeImpl implements Exchange {
+public class DefaultExchange implements Exchange {
 
     private final Map<String, Object> properties = new HashMap<>();
     private Object body;
@@ -42,7 +44,7 @@ public class ExchangeImpl implements Exchange {
 
     @Override
     public Exchange shallowCopy() {
-        Exchange copy = new ExchangeImpl();
+        Exchange copy = new DefaultExchange();
         copy.setBody(body);
         properties.forEach(copy::setProperty);
         return copy;

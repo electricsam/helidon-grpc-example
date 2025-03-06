@@ -7,7 +7,7 @@ import com.lmax.disruptor.dsl.Disruptor;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.EndpointRouteDefinition;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -34,7 +34,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     }
 
     @Override
-    public void addRouteDefinition(RouteDefinitionInternal routeDefinition) {
+    public void addRouteDefinition(EndpointRouteDefinition routeDefinition) {
         subscribe(routeDefinition);
     }
 
@@ -61,14 +61,14 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
             if (!ringBuffer.tryPublishEvent((event, sequence) -> event.setExchange(copy))) {
                 errorHandler.handleError(new RingBufferOverflowException("Ring buffer overflow"), exchange);
             }
-        } catch (Throwable t) {
-            errorHandler.handleError(t, exchange);
+        } catch (Exception e) {
+            errorHandler.handleError(e, exchange);
             return false;
         }
         return true;
     }
 
-    private void subscribe(RouteDefinitionInternal routeDefinition) {
+    private void subscribe(EndpointRouteDefinition routeDefinition) {
         RouteQueue routeQueue = new RouteQueue(routeDefinition);
         BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = new BatchEventProcessorBuilder()
                 .build(ringBuffer, ringBuffer.newBarrier(), (event, sequence, endOfBatch) -> onEvent(event, routeQueue));
@@ -113,9 +113,9 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
     private static class RouteQueue implements Runnable {
 
         private final LinkedBlockingQueue<RouteQueueElement> queue = new LinkedBlockingQueue<>();
-        private final RouteDefinitionInternal routeDefinition;
+        private final EndpointRouteDefinition routeDefinition;
 
-        private RouteQueue(RouteDefinitionInternal routeDefinition) {
+        private RouteQueue(EndpointRouteDefinition routeDefinition) {
             this.routeDefinition = routeDefinition;
             Thread.ofVirtual().start(this);
         }

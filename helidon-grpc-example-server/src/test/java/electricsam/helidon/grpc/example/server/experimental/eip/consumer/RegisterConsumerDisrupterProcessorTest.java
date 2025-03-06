@@ -4,7 +4,7 @@ import electricsam.helidon.grpc.example.proto.ExampleGrpc.ConsumerRegistration;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.ExchangeImpl;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.DefaultExchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilder;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilderFactory;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class RegisterConsumerDisrupterProcessorTest {
 
         final String registrationId = UUID.randomUUID().toString();
 
-        final Exchange registerExchange = new ExchangeImpl();
+        final Exchange registerExchange = new DefaultExchange();
         registerExchange.setBody(ConsumerRegistration.newBuilder().setId(registrationId).setStart(true).build());
         registerExchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, streamObserverId);
 
@@ -46,7 +46,7 @@ class RegisterConsumerDisrupterProcessorTest {
         verifyNoMoreInteractions(ringBufferRouteBuilder);
         reset(ringBufferRouteBuilder);
 
-        final Exchange unRegisterExchange = new ExchangeImpl();
+        final Exchange unRegisterExchange = new DefaultExchange();
         unRegisterExchange.setBody(ConsumerRegistration.newBuilder().setId(registrationId).setStart(false).build());
         unRegisterExchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, streamObserverId);
 

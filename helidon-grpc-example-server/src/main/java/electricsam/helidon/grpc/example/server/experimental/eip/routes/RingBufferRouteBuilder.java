@@ -2,12 +2,12 @@ package electricsam.helidon.grpc.example.server.experimental.eip.routes;
 
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteBuilder;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.RouteBuilderBase;
 
 import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.COMPLETED;
 import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER_ID;
 
-public class RingBufferRouteBuilder extends RouteBuilder {
+public class RingBufferRouteBuilder extends RouteBuilderBase {
 
     private final String responseStreamId;
     private final Endpoint ringBuffer;

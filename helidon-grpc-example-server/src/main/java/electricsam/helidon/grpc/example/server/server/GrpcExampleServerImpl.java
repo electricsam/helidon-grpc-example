@@ -1,7 +1,7 @@
 package electricsam.helidon.grpc.example.server.server;
 
 import electricsam.helidon.grpc.example.server.consumer.ConsumerService;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContext;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContextLifecycle;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import io.helidon.config.Config;
 import io.helidon.grpc.server.GrpcRouting;
@@ -19,7 +19,7 @@ public class GrpcExampleServerImpl implements GrpcExampleServer {
     private final ProducerService producerService;
     private final ConsumerService consumerService;
     private final GrpcService experimentalEipProducerService;
-    private final RouteContext experimentalRouteContext;
+    private final RouteContextLifecycle experimentalRouteContextLifecycle;
     private final GrpcService experimentalEipConsumerService;
 
 
@@ -30,19 +30,19 @@ public class GrpcExampleServerImpl implements GrpcExampleServer {
             ConsumerService consumerService,
             GrpcService experimentalEipProducerService,
             GrpcService experimentalEipConsumerService,
-            RouteContext experimentalRouteContext
+            RouteContextLifecycle experimentalRouteContextLifecycle
     ) {
         this.producerService = producerService;
         this.consumerService = consumerService;
         this.experimentalEipProducerService = experimentalEipProducerService;
-        this.experimentalRouteContext = experimentalRouteContext;
+        this.experimentalRouteContextLifecycle = experimentalRouteContextLifecycle;
         this.experimentalEipConsumerService = experimentalEipConsumerService;
     }
 
     @Override
     public CompletableFuture<GrpcServer> start() {
 
-        experimentalRouteContext.start();
+        experimentalRouteContextLifecycle.start();
 
         GrpcServerConfiguration config = GrpcServerConfiguration.create(Config.builder().sources(systemProperties()).build());
         GrpcRouting routing = GrpcRouting.builder()
@@ -68,7 +68,7 @@ public class GrpcExampleServerImpl implements GrpcExampleServer {
         if (grpcServer != null) {
             producerService.onServerShutdown();
             consumerService.onServerShutdown();
-            experimentalRouteContext.stop();
+            experimentalRouteContextLifecycle.stop();
             return grpcServer.shutdown().toCompletableFuture();
         } else {
             throw new IllegalStateException("server not started");

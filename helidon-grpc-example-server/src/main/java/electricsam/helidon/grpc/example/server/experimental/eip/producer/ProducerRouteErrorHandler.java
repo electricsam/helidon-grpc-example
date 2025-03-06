@@ -19,13 +19,13 @@ public class ProducerRouteErrorHandler implements ErrorHandler {
         this.producerTemplate = producerTemplate;
     }
 
-    private static boolean isStreamClosed(Throwable t) {
-        return t instanceof StatusRuntimeException && Status.CANCELLED == ((StatusRuntimeException) t).getStatus();
+    private static boolean isStreamClosed(Exception e) {
+        return e instanceof StatusRuntimeException && Status.CANCELLED == ((StatusRuntimeException) e).getStatus();
     }
 
     @Override
-    public void handleError(Throwable t, Exchange exchange) {
-        if (!isStreamClosed(t)) {
+    public void handleError(Exception e, Exchange exchange) {
+        if (!isStreamClosed(e)) {
             // Exchange should already have a reference to the response observer
             exchange.setProperty(COMPLETED, true);
             exchange.setBody(null);

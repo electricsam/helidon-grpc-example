@@ -8,7 +8,12 @@ import electricsam.helidon.grpc.example.server.consumer.DisruptorConsumerService
 import electricsam.helidon.grpc.example.server.experimental.eip.consumer.ConsumerRegistrationErrorHandler;
 import electricsam.helidon.grpc.example.server.experimental.eip.consumer.ConsumerResponseErrorHandler;
 import electricsam.helidon.grpc.example.server.experimental.eip.consumer.RegisterConsumerDisrupterProcessor;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.ProducerTemplate;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteBuilder;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteContextLifecycle;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.DefaultRouteContextLifecycle;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.DefaultProducerTemplate;
 import electricsam.helidon.grpc.example.server.experimental.eip.module.disruptor.DisruptorRingBufferEndpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrcpStreamEndpointFactory;
 import electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrcpStreamService;
@@ -46,7 +51,7 @@ public interface GrpcExampleModule {
     static GrpcExampleServer grpcExampleServer(
             ConsumerService consumerService,
             ProducerService producerService,
-            RouteContext experimentalRouteContext,
+            RouteContextLifecycle experimentalRouteContextLifecycle,
             @Named("ProducerGrcpStreamService") GrcpStreamService experimentalProducerService,
             @Named("ConsumerGrcpStreamService") GrcpStreamService experimentalConsumerService
     ) {
@@ -55,7 +60,7 @@ public interface GrpcExampleModule {
                 consumerService,
                 experimentalProducerService,
                 experimentalConsumerService,
-                experimentalRouteContext
+                experimentalRouteContextLifecycle
         );
     }
 
@@ -89,7 +94,7 @@ public interface GrpcExampleModule {
     @Provides
     @Singleton
     static ProducerTemplate experimentalProducerTemplate() {
-        return new ProducerTemplateImpl();
+        return new DefaultProducerTemplate();
     }
 
     @Provides
@@ -233,7 +238,7 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
-    static RouteContext experimentalRouteContext(RouteBuilder routeBuilder) {
-        return new RouteContextImpl(Collections.singletonList(routeBuilder));
+    static RouteContextLifecycle experimentalRouteContext(RouteBuilder routeBuilder) {
+        return new DefaultRouteContextLifecycle(Collections.singletonList(routeBuilder));
     }
 }

@@ -7,8 +7,8 @@ public class ConsumerRegistrationErrorHandler implements ErrorHandler {
 
 
     @Override
-    public void handleError(Throwable t, Exchange exchange) {
+    public void handleError(Exception e, Exchange exchange) {
         // TODO implement me
-        t.printStackTrace();
+        e.printStackTrace();
     }
 }

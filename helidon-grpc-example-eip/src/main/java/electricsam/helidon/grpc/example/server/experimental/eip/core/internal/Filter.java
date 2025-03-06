@@ -1,4 +1,7 @@
-package electricsam.helidon.grpc.example.server.experimental.eip.core;
+package electricsam.helidon.grpc.example.server.experimental.eip.core.internal;
+
+import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 
 import java.util.function.Predicate;
 

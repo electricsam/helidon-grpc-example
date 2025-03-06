@@ -1,4 +1,14 @@
-package electricsam.helidon.grpc.example.server.experimental.eip.core;
+package electricsam.helidon.grpc.example.server.experimental.eip.core.impl;
+
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.EndpointRouteDefinition;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Processor;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinition;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.internal.Filter;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.internal.Processable;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.internal.ProcessorWrapper;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -6,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-public class RouteDefinitionImpl implements RouteDefinitionInternal {
+public class EndpointRouteDefinitionImpl implements EndpointRouteDefinition {
 
     private final List<Processable> processors = new ArrayList<>();
     private ErrorHandler errorHandler = new DefaultErrorHandler();
@@ -60,8 +70,8 @@ public class RouteDefinitionImpl implements RouteDefinitionInternal {
                     break;
                 }
             }
-        } catch (Throwable t) {
-            errorHandler.handleError(t, exchange);
+        } catch (Exception e) {
+            errorHandler.handleError(e, exchange);
         }
     }
 

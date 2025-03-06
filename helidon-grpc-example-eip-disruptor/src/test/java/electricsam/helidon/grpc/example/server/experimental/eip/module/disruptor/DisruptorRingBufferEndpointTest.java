@@ -1,6 +1,10 @@
 package electricsam.helidon.grpc.example.server.experimental.eip.module.disruptor;
 
-import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.DefaultExchange;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.EndpointRouteDefinition;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.EndpointRouteDefinitionImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletableFuture;
@@ -21,7 +25,7 @@ class DisruptorRingBufferEndpointTest {
         final AtomicReference<Throwable> errorRef = new AtomicReference<>();
         final CompletableFuture<Exchange> responseFuture = new CompletableFuture<>();
 
-        final RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        final EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
         routeDefinition.process(responseFuture::complete);
 
         final ErrorHandler errorHandler = (t, exchange) -> errorRef.set(t);
@@ -31,7 +35,7 @@ class DisruptorRingBufferEndpointTest {
         endpoint.addRouteDefinition(routeDefinition);
 
         Thread.ofVirtual().start(() -> {
-            Exchange exchange = new ExchangeImpl();
+            Exchange exchange = new DefaultExchange();
             exchange.setBody("Hello World");
             endpoint.process(exchange, errorHandler);
         });
@@ -56,22 +60,22 @@ class DisruptorRingBufferEndpointTest {
         CompletableFuture<Exchange> responseFuture2 = new CompletableFuture<>();
         CompletableFuture<Exchange> responseFuture3 = new CompletableFuture<>();
 
-        CompletableFuture<RouteDefinitionInternal> routeFuture1 = CompletableFuture.supplyAsync(() -> {
-            RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        CompletableFuture<EndpointRouteDefinition> routeFuture1 = CompletableFuture.supplyAsync(() -> {
+            EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
             routeDefinition.process(responseFuture1::complete);
             endpoint.addRouteDefinition(routeDefinition);
             return routeDefinition;
         }, Executors.newVirtualThreadPerTaskExecutor());
 
-        CompletableFuture<RouteDefinitionInternal> routeFuture2 = CompletableFuture.supplyAsync(() -> {
-            RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        CompletableFuture<EndpointRouteDefinition> routeFuture2 = CompletableFuture.supplyAsync(() -> {
+            EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
             routeDefinition.process(responseFuture2::complete);
             endpoint.addRouteDefinition(routeDefinition);
             return routeDefinition;
         }, Executors.newVirtualThreadPerTaskExecutor());
 
-        CompletableFuture<RouteDefinitionInternal> routeFuture3 = CompletableFuture.supplyAsync(() -> {
-            RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        CompletableFuture<EndpointRouteDefinition> routeFuture3 = CompletableFuture.supplyAsync(() -> {
+            EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
             routeDefinition.process(responseFuture3::complete);
             endpoint.addRouteDefinition(routeDefinition);
             return routeDefinition;
@@ -80,7 +84,7 @@ class DisruptorRingBufferEndpointTest {
         CompletableFuture.allOf(routeFuture1, routeFuture2, routeFuture3).get(1, TimeUnit.SECONDS);
 
         Thread.ofVirtual().start(() -> {
-            Exchange exchange = new ExchangeImpl();
+            Exchange exchange = new DefaultExchange();
             exchange.setBody("Hello World");
             endpoint.process(exchange, errorHandler);
         });
@@ -109,22 +113,22 @@ class DisruptorRingBufferEndpointTest {
         CompletableFuture<Exchange> responseFuture2 = new CompletableFuture<>();
         CompletableFuture<Exchange> responseFuture3 = new CompletableFuture<>();
 
-        CompletableFuture<RouteDefinitionInternal> routeFuture1 = CompletableFuture.supplyAsync(() -> {
-            RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        CompletableFuture<EndpointRouteDefinition> routeFuture1 = CompletableFuture.supplyAsync(() -> {
+            EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
             routeDefinition.process(responseFuture1::complete);
             endpoint.addRouteDefinition(routeDefinition);
             return routeDefinition;
         }, Executors.newVirtualThreadPerTaskExecutor());
 
-        CompletableFuture<RouteDefinitionInternal> routeFuture2 = CompletableFuture.supplyAsync(() -> {
-            RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+        CompletableFuture<EndpointRouteDefinition> routeFuture2 = CompletableFuture.supplyAsync(() -> {
+            EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
             routeDefinition.process(responseFuture2::complete);
             endpoint.addRouteDefinition(routeDefinition);
             return routeDefinition;
         }, Executors.newVirtualThreadPerTaskExecutor());
 
         CompletableFuture<Void> routeFuture3 = CompletableFuture.supplyAsync(() -> {
-                    RouteDefinitionInternal routeDefinition = new RouteDefinitionImpl();
+                    EndpointRouteDefinition routeDefinition = new EndpointRouteDefinitionImpl();
                     routeDefinition.process(responseFuture3::complete);
                     endpoint.addRouteDefinition(routeDefinition);
                     return routeDefinition;
@@ -137,7 +141,7 @@ class DisruptorRingBufferEndpointTest {
         CompletableFuture.allOf(routeFuture1, routeFuture2, routeFuture3).get(1, TimeUnit.SECONDS);
 
         Thread.ofVirtual().start(() -> {
-            Exchange exchange = new ExchangeImpl();
+            Exchange exchange = new DefaultExchange();
             exchange.setBody("Hello World");
             endpoint.process(exchange, errorHandler);
         });

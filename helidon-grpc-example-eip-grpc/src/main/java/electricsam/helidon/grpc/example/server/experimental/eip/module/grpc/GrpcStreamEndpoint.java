@@ -4,8 +4,8 @@ import com.google.protobuf.Descriptors.FileDescriptor;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.ExchangeImpl;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.DefaultExchange;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.EndpointRouteDefinition;
 import io.grpc.stub.StreamObserver;
 import io.helidon.grpc.server.ServiceDescriptor;
 
@@ -24,7 +24,7 @@ public class GrpcStreamEndpoint implements Endpoint {
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final String methodName;
     private final FileDescriptor fileDescriptor;
-    private final AtomicReference<RouteDefinitionInternal> routeDefinitionRef = new AtomicReference<>();
+    private final AtomicReference<EndpointRouteDefinition> routeDefinitionRef = new AtomicReference<>();
 
     GrpcStreamEndpoint(String methodName, FileDescriptor fileDescriptor) {
         this.methodName = methodName;
@@ -33,14 +33,14 @@ public class GrpcStreamEndpoint implements Endpoint {
 
     @Override
     public void removeRouteDefinition(String routeId) {
-        RouteDefinitionInternal routeDefinition = routeDefinitionRef.get();
+        EndpointRouteDefinition routeDefinition = routeDefinitionRef.get();
         if (routeDefinition != null && routeDefinition.getRouteId().equals(routeId)) {
             routeDefinitionRef.set(null);
         }
     }
 
     @Override
-    public void addRouteDefinition(RouteDefinitionInternal routeDefinition) {
+    public void addRouteDefinition(EndpointRouteDefinition routeDefinition) {
         if (!routeDefinitionRef.compareAndSet(null, routeDefinition)) {
             throw new IllegalStateException("Route definition already exists");
         }
@@ -56,7 +56,7 @@ public class GrpcStreamEndpoint implements Endpoint {
         running.set(false);
         // TODO lock / error on stopping
         responseStreams.forEachValue(10, q -> {
-            Exchange exchange = new ExchangeImpl();
+            Exchange exchange = new DefaultExchange();
             exchange.setProperty(COMPLETED, true);
             q.put(exchange, (t, e) -> {}, true);
         });
@@ -73,7 +73,7 @@ public class GrpcStreamEndpoint implements Endpoint {
         responseStreams.putIfAbsent(responseStreamId, new StreamObserverQueue(responseStream));
         return new StreamObserver<>() {
             public void onNext(Object request) {
-                final Exchange exchange = new ExchangeImpl();
+                final Exchange exchange = new DefaultExchange();
                 exchange.setBody(request);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
@@ -81,14 +81,18 @@ public class GrpcStreamEndpoint implements Endpoint {
             }
 
             public void onError(Throwable t) {
-                final Exchange exchange = new ExchangeImpl();
+                final Exchange exchange = new DefaultExchange();
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
-                routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
+                if(t instanceof Exception ) {
+                    routeDefinitionRef.get().getErrorHandler().handleError((Exception) t, exchange);
+                } else {
+                    routeDefinitionRef.get().getErrorHandler().handleError(new SeriousErrorException(t), exchange);
+                }
             }
 
             public void onCompleted() {
-                final Exchange exchange = new ExchangeImpl();
+                final Exchange exchange = new DefaultExchange();
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, true);
                 routeDefinitionRef.get().processExchange(exchange);
@@ -113,8 +117,8 @@ public class GrpcStreamEndpoint implements Endpoint {
                 throw new IllegalStateException("No StreamObserver found for RESPONSE_STREAM_OBSERVER_ID property " + responseStreamId);
             }
             responseStream.put(copy, errorHandler, false);
-        } catch (Throwable t) {
-            errorHandler.handleError(t, copy);
+        } catch (Exception e) {
+            errorHandler.handleError(e, copy);
             return false;
         }
         return true;
@@ -189,8 +193,8 @@ public class GrpcStreamEndpoint implements Endpoint {
                         Object body = exchange.getBody(Object.class);
                         observer.onNext(body);
                     }
-                } catch (Throwable t) {
-                    errorHandler.handleError(t, exchange);
+                } catch (Exception e) {
+                    errorHandler.handleError(e, exchange);
                 }
                 if (element.isPoison()) {
                     break;

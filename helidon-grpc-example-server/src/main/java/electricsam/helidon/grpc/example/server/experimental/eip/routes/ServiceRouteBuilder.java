@@ -1,10 +1,11 @@
 package electricsam.helidon.grpc.example.server.experimental.eip.routes;
 
 import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.impl.RouteBuilderBase;
 
 import java.util.function.Predicate;
 
-public class ServiceRouteBuilder extends RouteBuilder {
+public class ServiceRouteBuilder extends RouteBuilderBase {
 
     private final Endpoint producerEcho;
     private final Processor setProducerReply;
