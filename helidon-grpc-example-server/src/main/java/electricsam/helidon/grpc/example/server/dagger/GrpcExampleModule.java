@@ -13,6 +13,8 @@ import electricsam.helidon.grpc.example.server.experimental.eip.module.disruptor
 import electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrcpStreamEndpointFactory;
 import electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrcpStreamService;
 import electricsam.helidon.grpc.example.server.experimental.eip.producer.*;
+import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilderFactory;
+import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilderFactoryImpl;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.ServiceRouteBuilder;
 import electricsam.helidon.grpc.example.server.producer.ProducerService;
 import electricsam.helidon.grpc.example.server.producer.ProducerServiceImpl;
@@ -131,15 +133,23 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
+    static RingBufferRouteBuilderFactory experimentalRingBufferRouteBuilderFactory() {
+        return new RingBufferRouteBuilderFactoryImpl();
+    }
+
+    @Provides
+    @Singleton
     static RegisterConsumerDisrupterProcessor experimentalRegisterConsumerDisrupterProcessor(
             DisruptorRingBufferEndpoint ringBufferEndpoint,
             @Named("RegisterConsumerEndpoint") Endpoint consumerEndpoint,
-            ConsumerResponseErrorHandler consumerResponseErrorHandler
+            ConsumerResponseErrorHandler consumerResponseErrorHandler,
+            RingBufferRouteBuilderFactory ringBufferRouteBuilderFactory
     ) {
         return new RegisterConsumerDisrupterProcessor(
                 ringBufferEndpoint,
                 consumerEndpoint,
-                consumerResponseErrorHandler);
+                consumerResponseErrorHandler,
+                ringBufferRouteBuilderFactory);
     }
 
 

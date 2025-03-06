@@ -69,7 +69,7 @@ public class GrpcStreamEndpoint implements Endpoint {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
-                routeDefinitionRef.get().process(exchange);
+                routeDefinitionRef.get().processExchange(exchange);
             }
 
             public void onError(Throwable t) {
@@ -87,7 +87,7 @@ public class GrpcStreamEndpoint implements Endpoint {
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, true);
-                routeDefinitionRef.get().process(exchange);
+                routeDefinitionRef.get().processExchange(exchange);
             }
         };
     }

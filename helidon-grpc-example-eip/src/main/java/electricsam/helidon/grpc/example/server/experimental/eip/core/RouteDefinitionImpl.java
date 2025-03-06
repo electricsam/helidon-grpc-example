@@ -53,7 +53,7 @@ public class RouteDefinitionImpl implements RouteDefinitionInternal {
     }
 
     @Override
-    public void process(Exchange exchange) {
+    public void processExchange(Exchange exchange) {
         try {
             for (Processable processable : processors) {
                 if (!processable.process(exchange, errorHandler)) {

@@ -4,7 +4,10 @@ import com.lmax.disruptor.BatchEventProcessor;
 import com.lmax.disruptor.BatchEventProcessorBuilder;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
-import electricsam.helidon.grpc.example.server.experimental.eip.core.*;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
+import electricsam.helidon.grpc.example.server.experimental.eip.core.RouteDefinitionInternal;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -19,7 +22,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
 
     private final RingBuffer<DisruptorRingBufferEvent> ringBuffer;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-    private final ConcurrentHashMap<String, RouteRegistration> routeDefinitions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, BatchEventProcessor<DisruptorRingBufferEvent>> routeDefinitions = new ConcurrentHashMap<>();
 
     public DisruptorRingBufferEndpoint(int ringBufferSize) {
         this.ringBufferSize = ringBufferSize;
@@ -69,13 +72,12 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
         executor.execute(batchEventProcessor);
         //TODO handle unsupported case where a route is registered more than once
         //TODO check if there a potential threading error case between starting the batch processor, registration, and messages flowing in
-        routeDefinitions.putIfAbsent(routeDefinition.getRouteId(), new RouteRegistration(batchEventProcessor, routeDefinition));
+        routeDefinitions.putIfAbsent(routeDefinition.getRouteId(), batchEventProcessor);
     }
 
     private void unsubscribe(String routeId) {
-        RouteRegistration routeRegistration = routeDefinitions.remove(routeId);
-        if (routeRegistration != null) {
-            BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = routeRegistration.getBatchEventProcessor();
+        BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor = routeDefinitions.remove(routeId);
+        if (batchEventProcessor != null) {
             batchEventProcessor.halt();
             ringBuffer.removeGatingSequence(batchEventProcessor.getSequence());
         }
@@ -85,25 +87,7 @@ public class DisruptorRingBufferEndpoint implements Endpoint {
         Exchange exchange = event.getExchange();
         exchange.setProperty(RING_BUFFER_SIZE, ringBufferSize);
         exchange.setProperty(RING_BUFFER, ringBuffer);
-        routeDefinition.process(exchange);
-    }
-
-    private static class RouteRegistration {
-        private final BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor;
-        private final RouteDefinitionInternal routeDefinition;
-
-        RouteRegistration(BatchEventProcessor<DisruptorRingBufferEvent> batchEventProcessor, RouteDefinitionInternal routeDefinition) {
-            this.batchEventProcessor = batchEventProcessor;
-            this.routeDefinition = routeDefinition;
-        }
-
-        BatchEventProcessor<DisruptorRingBufferEvent> getBatchEventProcessor() {
-            return batchEventProcessor;
-        }
-
-        RouteDefinitionInternal getRouteDefinition() {
-            return routeDefinition;
-        }
+        routeDefinition.processExchange(exchange);
     }
 
 }

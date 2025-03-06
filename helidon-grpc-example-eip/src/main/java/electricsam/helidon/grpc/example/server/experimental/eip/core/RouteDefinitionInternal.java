@@ -6,6 +6,6 @@ public interface RouteDefinitionInternal extends RouteDefinition {
 
     String getRouteId();
     List<Processable> getProcessors();
-    void process(Exchange exchange);
+    void processExchange(Exchange exchange);
     ErrorHandler getErrorHandler();
 }
