@@ -7,7 +7,6 @@ import java.util.function.Predicate;
 public class ServiceRouteBuilder extends RouteBuilder {
 
     private final Endpoint producerEcho;
-    private final Processor logRequest;
     private final Processor setProducerReply;
     private final ErrorHandler producerErrorHandler;
     private final Endpoint consumer;
@@ -20,7 +19,6 @@ public class ServiceRouteBuilder extends RouteBuilder {
 
     public ServiceRouteBuilder(
             Endpoint producerEcho,
-            Processor logRequest,
             Processor setProducerReply,
             ErrorHandler producerErrorHandler,
             Endpoint consumer,
@@ -32,7 +30,6 @@ public class ServiceRouteBuilder extends RouteBuilder {
             Predicate<Exchange> notCompleted
     ) {
         this.producerEcho = producerEcho;
-        this.logRequest = logRequest;
         this.setProducerReply = setProducerReply;
         this.producerErrorHandler = producerErrorHandler;
         this.consumer = consumer;
@@ -48,13 +45,11 @@ public class ServiceRouteBuilder extends RouteBuilder {
     public void configure() {
         from(producerEcho)
                 .errorHandler(producerErrorHandler)
-                .process(logRequest)
                 .process(setProducerReply)
                 .to(producerEcho);
 
         from(producer)
                 .errorHandler(producerErrorHandler)
-                .process(logRequest)
                 .process(setProducerReply)
                 .to(producer)
                 .filter(notCompleted)

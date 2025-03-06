@@ -82,12 +82,6 @@ public interface GrpcExampleModule {
 
     @Provides
     @Singleton
-    static ProducerLoggingProcessor experimentalProducerLoggingProcessor() {
-        return new ProducerLoggingProcessor();
-    }
-
-    @Provides
-    @Singleton
     static ProducerSetReplyProcessor experimentalProducerSetReplyProcessor() {
         return new ProducerSetReplyProcessor();
     }
@@ -213,7 +207,6 @@ public interface GrpcExampleModule {
     @Singleton
     static RouteBuilder experimentalRouteBuilder(
             @Named("ProduceStreamEchoEndpoint") Endpoint producerEchoEndpoint,
-            ProducerLoggingProcessor producerLoggingProcessor,
             ProducerSetReplyProcessor processorsSetReplyProcessor,
             ProducerRouteErrorHandler producerRouteErrorHandler,
             @Named("RegisterConsumerEndpoint") Endpoint consumerEndpoint,
@@ -226,7 +219,6 @@ public interface GrpcExampleModule {
     ) {
         return new ServiceRouteBuilder(
                 producerEchoEndpoint,
-                producerLoggingProcessor,
                 processorsSetReplyProcessor,
                 producerRouteErrorHandler,
                 consumerEndpoint,

@@ -2,16 +2,15 @@ package electricsam.helidon.grpc.example.server.experimental.eip.routes;
 
 import electricsam.helidon.grpc.example.server.experimental.eip.core.Endpoint;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.ErrorHandler;
-import io.grpc.stub.StreamObserver;
 
 public class RingBufferRouteBuilderFactoryImpl implements RingBufferRouteBuilderFactory {
     @Override
     public RingBufferRouteBuilder create(
-            StreamObserver<?> responseStream,
+            String responseStreamId,
             Endpoint ringBuffer,
             Endpoint consumer,
             ErrorHandler errorHandler
     ) {
-        return new RingBufferRouteBuilder(responseStream, ringBuffer, consumer, errorHandler);
+        return new RingBufferRouteBuilder(responseStreamId, ringBuffer, consumer, errorHandler);
     }
 }

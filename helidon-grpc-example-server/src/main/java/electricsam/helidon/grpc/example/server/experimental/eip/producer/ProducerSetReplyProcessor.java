@@ -15,10 +15,14 @@ public class ProducerSetReplyProcessor implements Processor {
     @Override
     public void process(Exchange exchange) {
         boolean completed = exchange.getProperty(COMPLETED, Boolean.class);
-        if (!completed) {
-            ProducerRequest request = exchange.getBody(ExampleGrpc.ProducerRequest.class);
+        if (completed) {
+            System.out.println("Completed producer response stream");
+        } else {
+            ProducerRequest request = exchange.getBody(ProducerRequest.class);
+            System.out.println("Received " + request.getMessage());
+            String message = "ack-" + request.getMessage();
             exchange.setProperty(PRODUCER_REQUEST, request);
-            ProducerResponse response = ExampleGrpc.ProducerResponse.newBuilder().setMessage("ack-" + request.getMessage()).build();
+            ProducerResponse response = ExampleGrpc.ProducerResponse.newBuilder().setMessage(message).build();
             exchange.setBody(response);
         }
     }

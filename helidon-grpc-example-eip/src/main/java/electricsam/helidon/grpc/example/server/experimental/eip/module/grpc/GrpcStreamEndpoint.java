@@ -7,17 +7,17 @@ import io.helidon.grpc.server.ServiceDescriptor;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GrpcStreamEndpoint implements Endpoint {
 
-    public static final String RESPONSE_STREAM_OBSERVER = "RESPONSE_STREAM_OBSERVER";
     public static final String RESPONSE_STREAM_OBSERVER_ID = "RESPONSE_STREAM_OBSERVER_ID";
-    public static final String REQUEST_STREAM_OBSERVER = "REQUEST_STREAM_OBSERVER";
     public static final String COMPLETED = "COMPLETED";
 
-    private final ConcurrentHashMap<String, StreamObserver<?>> responseStreams = new ConcurrentHashMap<>();
-
+    private final ConcurrentHashMap<String, StreamObserverQueue> responseStreams = new ConcurrentHashMap<>();
+    private final AtomicBoolean running = new AtomicBoolean(true);
     private final String methodName;
     private final FileDescriptor fileDescriptor;
     private final AtomicReference<RouteDefinitionInternal> routeDefinitionRef = new AtomicReference<>();
@@ -49,24 +49,28 @@ public class GrpcStreamEndpoint implements Endpoint {
 
     @Override
     public void stop() {
+        running.set(false);
         // TODO lock / error on stopping
-        responseStreams.forEachValue(10, StreamObserver::onCompleted);
-        responseStreams.clear();
+        responseStreams.forEachValue(10, q -> {
+            Exchange exchange = new ExchangeImpl();
+            exchange.setProperty(COMPLETED, true);
+            q.put(exchange, (t, e) -> {}, true);
+        });
+        //TODO wait for all queues to complete
+//        responseStreams.clear();
     }
 
     public void update(ServiceDescriptor.Rules rules) {
         rules.proto(fileDescriptor).bidirectional(methodName, this::bidi);
     }
 
-    private StreamObserver<Object> bidi(StreamObserver<?> responseStream) {
+    private StreamObserver<Object> bidi(StreamObserver<Object> responseStream) {
         String responseStreamId = UUID.randomUUID().toString();
-        responseStreams.putIfAbsent(responseStreamId, responseStream);
+        responseStreams.putIfAbsent(responseStreamId, new StreamObserverQueue(responseStream));
         return new StreamObserver<>() {
             public void onNext(Object request) {
                 final Exchange exchange = new ExchangeImpl();
                 exchange.setBody(request);
-                exchange.setProperty(REQUEST_STREAM_OBSERVER, this);
-                exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
                 routeDefinitionRef.get().processExchange(exchange);
@@ -74,8 +78,6 @@ public class GrpcStreamEndpoint implements Endpoint {
 
             public void onError(Throwable t) {
                 final Exchange exchange = new ExchangeImpl();
-                exchange.setProperty(REQUEST_STREAM_OBSERVER, this);
-                exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, false);
                 routeDefinitionRef.get().getErrorHandler().handleError(t, exchange);
@@ -83,8 +85,6 @@ public class GrpcStreamEndpoint implements Endpoint {
 
             public void onCompleted() {
                 final Exchange exchange = new ExchangeImpl();
-                exchange.setProperty(REQUEST_STREAM_OBSERVER, this);
-                exchange.setProperty(RESPONSE_STREAM_OBSERVER, responseStream);
                 exchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, responseStreamId);
                 exchange.setProperty(COMPLETED, true);
                 routeDefinitionRef.get().processExchange(exchange);
@@ -92,34 +92,107 @@ public class GrpcStreamEndpoint implements Endpoint {
         };
     }
 
-
-    // TODO add visitors?
     @Override
     public boolean process(Exchange exchange, ErrorHandler errorHandler) {
+        Exchange copy = exchange.shallowCopy();
+        if (!running.get()) {
+            errorHandler.handleError(new IllegalStateException("gRPC stream is shutting down"), exchange);
+            return false;
+        }
         try {
-            // TODO handle types better
-            StreamObserver responseStream = exchange.getProperty(RESPONSE_STREAM_OBSERVER, StreamObserver.class);
+            String responseStreamId = copy.getProperty(RESPONSE_STREAM_OBSERVER_ID, String.class);
+            if (responseStreamId == null) {
+                throw new IllegalStateException("Exchange must contain a RESPONSE_STREAM_OBSERVER_ID property that corresponds to a valid StreamObserver.");
+            }
+            StreamObserverQueue responseStream = responseStreams.get(responseStreamId);
             if (responseStream == null) {
-                String responseStreamId = exchange.getProperty(RESPONSE_STREAM_OBSERVER_ID, String.class);
-                if (responseStreamId != null) {
-                    responseStream = responseStreams.get(responseStreamId);
-                }
+                throw new IllegalStateException("No StreamObserver found for RESPONSE_STREAM_OBSERVER_ID property " + responseStreamId);
             }
-            if (responseStream == null) {
-                throw new IllegalStateException("Exchange must contain either a RESPONSE_STREAM_OBSERVER property or a RESPONSE_STREAM_OBSERVER_ID property that correspond to a valid StreamObserver.");
-            }
-            boolean completed = exchange.getProperty(COMPLETED, Boolean.class);
-            if (completed) {
-                responseStream.onCompleted();
-            } else {
-                Object body = exchange.getBody(Object.class);
-                responseStream.onNext(body);
-            }
+            responseStream.put(copy, errorHandler, false);
         } catch (Throwable t) {
-            errorHandler.handleError(t, exchange);
+            errorHandler.handleError(t, copy);
             return false;
         }
         return true;
+    }
+
+    private static class StreamObserverQueueElement {
+        private final Exchange exchange;
+        private final ErrorHandler errorHandler;
+        private final boolean poison;
+
+        private StreamObserverQueueElement(Exchange exchange, ErrorHandler errorHandler, boolean poison) {
+            this.exchange = exchange;
+            this.errorHandler = errorHandler;
+            this.poison = poison;
+        }
+
+        public Exchange getExchange() {
+            return exchange;
+        }
+
+        public ErrorHandler getErrorHandler() {
+            return errorHandler;
+        }
+
+        public boolean isPoison() {
+            return poison;
+        }
+    }
+
+    private class StreamObserverQueue implements Runnable {
+
+        /*
+            StreamObservers must be interacted in a thread safe way.  A queue is used to ensure that only one
+            thread accesses the observer at any given time.
+
+            https://github.com/thingsboard/thingsboard/issues/7910
+            From StreamObserver JavaDoc:
+            Implementations are not required to be thread-safe (but should be thread-compatible  ). Separate StreamObservers
+            do not need to be synchronized together; incoming and outgoing directions are independent. Since individual
+            StreamObservers are not thread-safe, if multiple threads will be writing to a StreamObserver concurrently,
+            the application must synchronize calls.
+         */
+        private final LinkedBlockingQueue<StreamObserverQueueElement> queue = new LinkedBlockingQueue<>();
+        private final StreamObserver<Object> observer;
+
+        private StreamObserverQueue(StreamObserver<Object> observer) {
+            this.observer = observer;
+            Thread.ofVirtual().start(this);
+        }
+
+        public void put(Exchange exchange, ErrorHandler errorHandler, boolean poison) {
+            queue.offer(new StreamObserverQueueElement(exchange, errorHandler, poison));
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                StreamObserverQueueElement element;
+                try {
+                    element = queue.take();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Exception caught while waiting for queue", e);
+                }
+                Exchange exchange = element.getExchange();
+                ErrorHandler errorHandler = element.getErrorHandler();
+                try {
+                    boolean completed = exchange.getProperty(COMPLETED, Boolean.class);
+                    if (completed) {
+                        observer.onCompleted();
+                    } else {
+                        Object body = exchange.getBody(Object.class);
+                        observer.onNext(body);
+                    }
+                } catch (Throwable t) {
+                    errorHandler.handleError(t, exchange);
+                }
+                if (element.isPoison()) {
+                    break;
+                }
+            }
+        }
     }
 
 }

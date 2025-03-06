@@ -7,12 +7,10 @@ import electricsam.helidon.grpc.example.server.experimental.eip.core.Exchange;
 import electricsam.helidon.grpc.example.server.experimental.eip.core.ExchangeImpl;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilder;
 import electricsam.helidon.grpc.example.server.experimental.eip.routes.RingBufferRouteBuilderFactory;
-import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER;
 import static electricsam.helidon.grpc.example.server.experimental.eip.module.grpc.GrpcStreamEndpoint.RESPONSE_STREAM_OBSERVER_ID;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -28,21 +26,19 @@ class RegisterConsumerDisrupterProcessorTest {
         final Endpoint ringBuffer = mock(Endpoint.class);
         final Endpoint consumer = mock(Endpoint.class);
         final ErrorHandler errorHandler = mock(ErrorHandler.class);
-        final StreamObserver<?> streamObserver = mock(StreamObserver.class);
+        final String streamObserverId = UUID.randomUUID().toString();
         final RingBufferRouteBuilder ringBufferRouteBuilder = mock(RingBufferRouteBuilder.class);
 
         final RingBufferRouteBuilderFactory ringBufferRouteBuilderFactory = mock(RingBufferRouteBuilderFactory.class);
-        when(ringBufferRouteBuilderFactory.create(streamObserver, ringBuffer, consumer, errorHandler)).thenReturn(ringBufferRouteBuilder);
+        when(ringBufferRouteBuilderFactory.create(streamObserverId, ringBuffer, consumer, errorHandler)).thenReturn(ringBufferRouteBuilder);
 
         final RegisterConsumerDisrupterProcessor processor = new RegisterConsumerDisrupterProcessor(ringBuffer, consumer, errorHandler, ringBufferRouteBuilderFactory);
 
         final String registrationId = UUID.randomUUID().toString();
-        final String observerId = UUID.randomUUID().toString();
 
         final Exchange registerExchange = new ExchangeImpl();
         registerExchange.setBody(ConsumerRegistration.newBuilder().setId(registrationId).setStart(true).build());
-        registerExchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, observerId);
-        registerExchange.setProperty(RESPONSE_STREAM_OBSERVER, streamObserver);
+        registerExchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, streamObserverId);
 
         processor.process(registerExchange);
 
@@ -52,8 +48,7 @@ class RegisterConsumerDisrupterProcessorTest {
 
         final Exchange unRegisterExchange = new ExchangeImpl();
         unRegisterExchange.setBody(ConsumerRegistration.newBuilder().setId(registrationId).setStart(false).build());
-        unRegisterExchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, observerId);
-        unRegisterExchange.setProperty(RESPONSE_STREAM_OBSERVER, streamObserver);
+        unRegisterExchange.setProperty(RESPONSE_STREAM_OBSERVER_ID, streamObserverId);
 
         processor.process(unRegisterExchange);
 
