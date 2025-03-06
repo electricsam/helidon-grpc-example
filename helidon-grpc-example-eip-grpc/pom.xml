@@ -10,9 +10,26 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>helidon-grpc-example-eip</artifactId>
+    <artifactId>helidon-grpc-example-eip-grpc</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>electricsam</groupId>
+            <artifactId>helidon-grpc-example-eip</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.grpc</groupId>-->
+<!--            <artifactId>grpc-protobuf</artifactId>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>io.grpc</groupId>-->
+<!--            <artifactId>grpc-stub</artifactId>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>io.helidon.grpc</groupId>
+            <artifactId>helidon-grpc-server</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -9,6 +9,14 @@
     <artifactId>helidon-grpc-example</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -18,10 +26,13 @@
         <dagger.version>2.55</dagger.version>
     </properties>
 
+
     <modules>
+        <module>helidon-grpc-example-eip</module>
+        <module>helidon-grpc-example-eip-grpc</module>
+        <module>helidon-grpc-example-eip-disruptor</module>
         <module>helidon-grpc-example-proto</module>
         <module>helidon-grpc-example-cli</module>
-        <module>helidon-grpc-example-eip</module>
         <module>helidon-grpc-example-server</module>
     </modules>
 

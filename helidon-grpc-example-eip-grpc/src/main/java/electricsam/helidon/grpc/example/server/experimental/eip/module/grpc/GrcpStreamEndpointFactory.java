@@ -2,7 +2,10 @@ package electricsam.helidon.grpc.example.server.experimental.eip.module.grpc;
 
 import com.google.protobuf.Descriptors.FileDescriptor;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class GrcpStreamEndpointFactory {
 

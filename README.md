@@ -70,18 +70,18 @@ This will build all three modules: proto, service, cli.
 
 To start the service, from the root of the project, run:
 ```bash
-java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT.jar
+java -jar helidon-grpc-example-server/target/helidon-grpc-example-server-1.0.0-SNAPSHOT-exe.jar
 ```
 
 
 To start a streaming producer, from the root of the project, run:
 ```bash
-java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce stream
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT-exe.jar produce stream
 ````
 
 To start a simple consumer, from the root of the project, run:
 ```bash
-java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar consume print
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT-exe.jar consume print
 ````
 
 Multiple consumers can be started to demonstrate the service's multicast capabilities.
@@ -130,7 +130,7 @@ producer
 This can be invoked from the CLI with:
 
 ```bash
-java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce experimental-eip --echo
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT-exe.jar produce experimental-eip --echo
 ```
 
 
@@ -177,11 +177,11 @@ basic case of a single producer and consumer does allow messages to flow from pr
 The corresponding CLI commands are:
 
 ```bash
-java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar produce experimental-eip
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT-exe.jar produce experimental-eip
 ```
 
 ```bash
-java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT.jar consume experimental-eip
+java -jar helidon-grpc-example-cli/target/helidon-grpc-example-cli-1.0.0-SNAPSHOT-exe.jar consume experimental-eip
 ```
 
 
